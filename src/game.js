@@ -4,6 +4,7 @@
   'use strict';
 
   const C = window.MNP_CONTENT;
+  const audio = window.MNP_AUDIO || { start() {}, reset() {}, update() {}, play() {}, setMuted() {}, muted: true };
   const SAVE_KEY = 'mnp.save.v1';
   const META_KEY = 'mnp.meta.v1';
   const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -147,6 +148,9 @@
     avoidMarks: $('#avoid-marks'),
     thread: $('#thread'),
     knot: $('#knot'),
+    throne: $('#throne'),
+    throneFront: $('#throne-front'),
+    dust: $('#dust'),
     protagonist: $('#protagonist'),
     robe: $('#robe'),
     visitor: $('#visitor'),
@@ -172,7 +176,7 @@
   void protagShape;
 
   // Fissures : chacune apparaît à partir d'un seuil de poids.
-  const CRACKS = [
+  const CRACK_DEFS = [
     ['back', 'M 760 96 L 755 124 L 764 150 L 757 176 L 762 200', 0],
     ['front', 'M 640 506 L 610 522 L 578 520 L 540 544', 1],
     ['back', 'M 696 200 L 712 214 L 706 236 L 718 252', 3],
@@ -188,10 +192,37 @@
     ['front', 'M 600 598 L 540 612 L 460 606', 22],
     ['front', 'M 670 406 L 700 414 L 730 408', 25],
     ['front', 'M 370 566 L 300 580 L 220 574 L 120 590', 28],
-  ].map(([layer, d, th]) => {
+    // Ramifications : elles partent des fissures principales.
+    ['front', 'M 610 522 L 596 540 L 598 556', 10],
+    ['back', 'M 757 176 L 744 186 L 738 204', 12],
+    ['front', 'M 912 528 L 918 548 L 936 560', 15],
+    ['back', 'M 712 214 L 700 222 L 697 238', 17],
+    ['back', 'M 818 216 L 826 230 L 822 246', 20],
+    ['front', 'M 680 556 L 700 584 L 696 604', 21],
+    ['back', 'M 770 162 L 782 158 L 796 166', 24],
+    ['front', 'M 430 568 L 424 590 L 402 604', 26],
+    ['front', 'M 850 562 L 880 574 L 900 598', 29],
+  ];
+
+  // Trois couches par fissure : braise (quand le poids devient lourd), trait sombre,
+  // éclat de lumière au moment où elle avance ou recule.
+  const crackLayers = {};
+  for (const layer of ['back', 'front']) {
     const parent = layer === 'back' ? el.cracksBack : el.cracksFront;
-    const node = svg('path', { d, pathLength: 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1 }, parent);
-    return { node, th };
+    crackLayers[layer] = {
+      ember: svg('g', { class: 'ember', opacity: 0 }, parent),
+      dark: svg('g', { class: 'dark' }, parent),
+      flash: svg('g', { class: 'flash' }, parent),
+    };
+  }
+  const CRACKS = CRACK_DEFS.map(([layer, d, th], i) => {
+    const L = crackLayers[layer];
+    const dash = { d, pathLength: 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1 };
+    const ember = svg('path', dash, L.ember);
+    ember.style.animationDelay = `${-(i * 0.73) % 4.5}s`;
+    const dark = svg('path', dash, L.dark);
+    const flash = svg('path', { d, pathLength: 1 }, L.flash);
+    return { ember, dark, flash, th, fill: 0, len: dark.getTotalLength() };
   });
 
   // Chaînes : chacune se tend à partir d'un seuil de poids.
@@ -214,8 +245,45 @@
       const ang = (Math.atan2(y2 - y, x2 - x) * 180) / Math.PI;
       svg('ellipse', { cx: x, cy: y, rx: i % 2 ? 6.5 : 3, ry: 3.4, transform: `rotate(${ang} ${x} ${y})` }, g);
     }
-    return { node: g, th };
+    return { node: g, th, on: false };
   });
+
+  // Éclat le long du segment qui vient de se fendre (ou de se refermer), et poussière.
+  function crackFlash(c, from, to, kind) {
+    if (reducedMotion || !c.flash.animate) return;
+    const p = c.flash;
+    p.style.stroke = kind === 'grow' ? '#f1e3bd' : '#bcd3e0';
+    p.style.strokeDasharray = `${Math.max(0.001, to - from)} 2`;
+    p.style.strokeDashoffset = -from;
+    p.animate([{ opacity: 0 }, { opacity: 0.95, offset: 0.2 }, { opacity: 0 }], {
+      duration: kind === 'grow' ? 1900 : 2800, delay: kind === 'grow' ? 250 : 0, easing: 'ease-out',
+    });
+    if (kind === 'grow') {
+      const pt = c.dark.getPointAtLength(c.len * to);
+      dust(pt.x, pt.y);
+    }
+  }
+
+  function dust(x, y) {
+    for (let i = 0; i < 7; i++) {
+      const g = svg('circle', { cx: x, cy: y, r: 0.6 + Math.random() * 1.1, fill: '#7a7482', opacity: 0 }, el.dust);
+      const dx = (Math.random() - 0.5) * 18, dy = 18 + Math.random() * 42;
+      const anim = g.animate([
+        { transform: 'translate(0px, 0px)', opacity: 0.9 },
+        { transform: `translate(${dx}px, ${dy}px)`, opacity: 0 },
+      ], { duration: 1200 + Math.random() * 900, delay: 400 + Math.random() * 900, easing: 'cubic-bezier(.3,.1,.7,1)', fill: 'both' });
+      anim.onfinish = () => g.remove();
+    }
+  }
+
+  function shakeThrone() {
+    if (reducedMotion) return;
+    for (const n of [el.throne, el.throneFront]) {
+      n.classList.remove('shaking');
+      void n.getBBox();
+      n.classList.add('shaking');
+    }
+  }
 
   // ---------------------------------------------------------------- branches
 
@@ -292,14 +360,39 @@
     const b = { type, visitor, seed: hash(`${visitor}:${type}:${state.branches.length}:${meta.runs.length}`) };
     state.branches.push(b);
     drawBranch(b, true);
+    audio.play('branch', type);
   }
 
   // ---------------------------------------------------------------- rendu du poids
 
-  function render() {
+  // `instant` : remise en place sans effets (nouvelle partie, reprise).
+  function render(opts = {}) {
     const w = state.weight;
-    for (const c of CRACKS) c.node.style.strokeDashoffset = 1 - clamp((w - c.th) / 4);
-    for (const ch of CHAINS) ch.node.style.opacity = w >= ch.th ? 1 : 0;
+    let grown = 0, healed = 0;
+    for (const c of CRACKS) {
+      const f = clamp((w - c.th) / 4);
+      if (!opts.instant && Math.abs(f - c.fill) > 0.02) {
+        if (f > c.fill) { grown += f - c.fill; crackFlash(c, c.fill, f, 'grow'); }
+        else { healed += c.fill - f; crackFlash(c, f, c.fill, 'heal'); }
+      }
+      c.fill = f;
+      c.dark.style.strokeDashoffset = 1 - f;
+      c.ember.style.strokeDashoffset = 1 - f;
+    }
+    // Sous un poids lourd, les fissures rougeoient.
+    const ember = clamp((w - 10) / 18).toFixed(3);
+    crackLayers.back.ember.style.opacity = ember;
+    crackLayers.front.ember.style.opacity = ember;
+    if (grown > 0.02) { audio.play('crack', grown); if (grown > 0.5) shakeThrone(); }
+    if (healed > 0.02) audio.play('heal');
+
+    for (const ch of CHAINS) {
+      const on = w >= ch.th;
+      if (on && !ch.on && !opts.instant) audio.play('chain');
+      ch.on = on;
+      ch.node.style.opacity = on ? 1 : 0;
+    }
+    audio.update(w, state.avoidCount);
     el.vignette.style.opacity = (0.42 + clamp(w / 30) * 0.5).toFixed(3);
     // L'évitement ne fissure pas : il ternit.
     const dull = clamp(state.avoidCount / 6);
@@ -577,6 +670,7 @@
   function onSilenceCue() {
     if (!isWaiting() || cur.cued || typing) return;
     cur.cued = true;
+    audio.play('hush');
     say(C.ui.silenceCue, 'aside');
   }
 
@@ -604,6 +698,7 @@
     }
     render();
     buildVisitor(v);
+    audio.play('arrive');
     await enterVisitor();
 
     if (state.owedYes && !v.final) await say(C.ui.owedReminder, 'aside');
@@ -681,6 +776,7 @@
     el.visitor.classList.remove('leaning');
     void el.visitor.getBBox();
     el.visitor.classList.add('leaning');
+    audio.play('listen');
 
     const line = v.listen[cur.heard++];
     await say(line === '…' ? '…' : `« ${line} »`, 'listen');
@@ -701,6 +797,7 @@
     state.weight = Math.max(0, state.weight - C.listenRelief);
     state.history.push({ visitor: v.id, choice: 'listen' });
     flashPresence();
+    audio.play('presence');
     render();
     await wait(600);
     await say(C.ui.listenEnd, 'outcome');
@@ -720,6 +817,7 @@
     void btn.offsetWidth;
     btn.classList.add('shake');
     cur.jam.fails++;
+    audio.play(id === 'refuse' ? 'loop' : 'jam');
 
     if (id === 'refuse') {
       await say(`— ${C.final.refuseSay}`, 'self');
@@ -757,6 +855,7 @@
       await say(A.out, 'outcome');
       await leaveVisitor();
     } else if (kind === 'flee') {
+      audio.play('steps', 1);
       await tween(900, (k) => { prot.dy = -16 * k; applyProtag(); });
       await tween(2200, (k) => { prot.dx = 320 * k; prot.o = 1 - k; applyProtag(); });
       render();
@@ -766,6 +865,7 @@
       vis.attached = false;
       applyVisitor();
       await wait(600);
+      audio.play('steps', 1);
       await tween(2200, (k) => { prot.dx = 320 * (1 - k); prot.o = k; applyProtag(); });
       await tween(900, (k) => { prot.dy = -16 * (1 - k); applyProtag(); });
       await say(A.back, 'outcome');
@@ -775,6 +875,7 @@
       vis.attached = false;
       applyVisitor();
       render();
+      audio.play('whoosh');
       await wait(700);
       await say(A.out, 'outcome');
     }
@@ -788,6 +889,7 @@
     disarmSilence();
     enableChoices(false);
     cur.jam.fails++;
+    audio.play('jam');
     if (kind === 'flee') await tween(700, (k) => { prot.dy = -14 * k; applyProtag(); });
     if (kind === 'deny') { vis.o = 1; applyVisitor(); }
     await say(C.final[kind], 'aside');
@@ -833,6 +935,7 @@
     await wait(900);
     el.thread.style.opacity = 0;
     el.knot.style.opacity = 0;
+    audio.play('release');
     flashPresence();
     render();
     await say(C.final.release, 'outcome');
@@ -859,6 +962,7 @@
   function finishGame() {
     disarmSilence();
     const ending = computeEnding();
+    audio.play('ending', ending);
     meta.runs.push({ ending, branches: state.branches.length, weight: Math.round(state.weight * 10) / 10 });
     store.set(META_KEY, meta);
     store.del(SAVE_KEY);
@@ -895,11 +999,13 @@
     clearLines();
     showChoices(false);
     renderRunMarks();
-    render();
+    render({ instant: true });
   }
 
   async function begin(resume) {
     disarmSilence();
+    audio.start();
+    audio.reset();
     const saved = store.get(SAVE_KEY);
     state = resume && saved ? Object.assign(newState(), saved) : newState();
     resetScene();
@@ -910,6 +1016,14 @@
     el.ending.hidden = true;
     runTurn();
   }
+
+  const soundBtn = $('#btn-sound');
+  const soundLabel = () => {
+    soundBtn.textContent = audio.muted ? 'son coupé' : 'son';
+    soundBtn.setAttribute('aria-pressed', String(!audio.muted));
+  };
+  soundBtn.addEventListener('click', () => { audio.start(); audio.setMuted(!audio.muted); soundLabel(); });
+  soundLabel();
 
   $('#btn-start').addEventListener('click', () => begin(false));
   $('#btn-resume').addEventListener('click', () => begin(true));

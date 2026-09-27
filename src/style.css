@@ -48,14 +48,32 @@ html, body {
   50% { transform: translateY(-4px); }
 }
 
-.cracks path {
-  fill: none;
+.cracks path { fill: none; stroke-linejoin: bevel; }
+.cracks .dark path {
   stroke: #0a0a0d;
   stroke-width: 2.2;
-  stroke-linejoin: bevel;
   transition: stroke-dashoffset 2.4s ease;
 }
-.cracks path.lit { stroke: #4c4552; stroke-width: 1; }
+.cracks .ember { transition: opacity 3s ease; }
+.cracks .ember path {
+  stroke: #b0583a;
+  stroke-width: 5;
+  filter: url(#f-ember);
+  transition: stroke-dashoffset 2.4s ease;
+  animation: ember 4.5s ease-in-out infinite;
+}
+@keyframes ember {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.9; }
+}
+.cracks .flash path { stroke-width: 1.8; opacity: 0; filter: url(#f-glow); }
+.shaking { animation: throne-shake 0.6s ease-out; }
+@keyframes throne-shake {
+  15% { transform: translate(-1.6px, 0.6px); }
+  35% { transform: translate(1.4px, -0.8px); }
+  55% { transform: translate(-1px, 0.4px); }
+  75% { transform: translate(0.6px, 0); }
+}
 
 #chains g { transition: opacity 2s ease; }
 #chains ellipse { fill: none; stroke: #57545f; stroke-width: 2.4; }
@@ -179,6 +197,27 @@ button.shake { animation: shake 0.45s; }
 #ending-text { max-width: 620px; font-size: 1.25rem; line-height: 1.55; color: #c9c2b5; }
 #ending-text p { margin: 0 0 0.9em; opacity: 0; animation: appear 2.4s ease forwards; }
 @keyframes appear { to { opacity: 1; } }
+
+#btn-sound {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 20;
+  font-size: 0.95rem;
+  padding: 4px 10px;
+  color: var(--ink-faint);
+  border-color: transparent;
+}
+#btn-sound[aria-pressed="false"] { text-decoration: line-through; }
+.hint { margin: -12px 0 0; color: var(--ink-faint); font-style: italic; }
+.load-error {
+  max-width: 520px;
+  margin: 0;
+  color: #d9a38a;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+.load-error code { font-size: 0.9em; color: #efd8c6; }
 
 #debug {
   position: absolute;

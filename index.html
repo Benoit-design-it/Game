@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- Fichier généré par build.js à partir de src/. Modifier src/, puis lancer : node build.js -->
 <html lang="fr">
 <head>
   <meta charset="utf-8">
@@ -7,7 +8,257 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <style>
+:root {
+  --bg: #050507;
+  --ink: #d9d3c7;
+  --ink-dim: #8c877e;
+  --ink-faint: #5d5953;
+  --self: #d6b878;
+  --line: #3a3740;
+  --panel: rgba(8, 8, 11, 0.92);
+  --serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+}
+
+#game {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+#scene {
+  transition: filter 3s ease;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: block;
+}
+
+/* --- Silhouette --- */
+#visitor { outline: none; }
+#visitor.listenable { cursor: default; }
+#visitor.listenable #visitor-body { transition: opacity 0.8s; }
+#visitor.listenable:hover #visitor-body,
+#visitor.listenable:focus-visible #visitor-body { opacity: 0.82; }
+#visitor.listenable:focus-visible { outline: none; }
+#visitor.leaning #visitor-body { animation: lean 1.6s ease-in-out; }
+@keyframes lean {
+  50% { transform: translateY(-4px); }
+}
+
+.cracks path { fill: none; stroke-linejoin: bevel; }
+.cracks .dark path {
+  stroke: #0a0a0d;
+  stroke-width: 2.2;
+  transition: stroke-dashoffset 2.4s ease;
+}
+.cracks .ember { transition: opacity 3s ease; }
+.cracks .ember path {
+  stroke: #b0583a;
+  stroke-width: 5;
+  filter: url(#f-ember);
+  transition: stroke-dashoffset 2.4s ease;
+  animation: ember 4.5s ease-in-out infinite;
+}
+@keyframes ember {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.9; }
+}
+.cracks .flash path { stroke-width: 1.8; opacity: 0; filter: url(#f-glow); }
+.shaking { animation: throne-shake 0.6s ease-out; }
+@keyframes throne-shake {
+  15% { transform: translate(-1.6px, 0.6px); }
+  35% { transform: translate(1.4px, -0.8px); }
+  55% { transform: translate(-1px, 0.4px); }
+  75% { transform: translate(0.6px, 0); }
+}
+
+#chains g { transition: opacity 2s ease; }
+#chains ellipse { fill: none; stroke: #57545f; stroke-width: 2.4; }
+
+#branches path { fill: none; transition: opacity 3s ease, stroke-dashoffset 3.5s ease; }
+#branches circle { transition: opacity 3s ease; }
+#avoid-marks > g { animation: fade-in 3s ease both; }
+@keyframes fade-in { from { opacity: 0; } }
+
+#thread { transition: opacity 3s ease; }
+#knot { transition: opacity 3s ease, r 1.5s ease; }
+#vignette { transition: opacity 3s ease; }
+#presence { transition: opacity 2.5s ease; }
+
+/* --- Panneau de dialogue --- */
+#panel {
+  flex: 0 0 auto;
+  background: var(--panel);
+  border-top: 1px solid #1c1b21;
+  padding: 18px 16px 22px;
+  min-height: 250px;
+  max-height: 48vh;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#lines {
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+  font-size: 1.28rem;
+  line-height: 1.45;
+  overflow-y: auto;
+  min-height: 3.2em;
+}
+#lines p { margin: 0 0 0.45em; }
+#lines .visitor { color: var(--ink); }
+#lines .listen  { color: #bfb8ab; font-style: italic; }
+#lines .self    { color: var(--self); }
+#lines .outcome { color: var(--ink-dim); font-size: 1.08rem; }
+#lines .aside   { color: var(--ink-faint); font-style: italic; font-size: 1.08rem; }
+
+#choices {
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+  transition: opacity 0.6s;
+}
+#choices.hidden { opacity: 0; pointer-events: none; }
+
+button {
+  font-family: var(--serif);
+  font-size: 1.08rem;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 9px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.3s, color 0.3s, opacity 0.6s, filter 0.6s;
+}
+button:hover:not(:disabled), button:focus-visible { border-color: #8d8578; color: #fff; outline: none; }
+button:disabled { opacity: 0.35; cursor: default; }
+button.dead { opacity: 0.18; filter: blur(0.6px); text-decoration: line-through; text-decoration-color: #5d5953; }
+button.shake { animation: shake 0.45s; }
+@keyframes shake {
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+.key { color: var(--ink-faint); font-size: 0.85em; margin-right: 0.5em; }
+
+#continue {
+  align-self: center;
+  border: none;
+  font-size: 1.6rem;
+  color: var(--ink-dim);
+  padding: 0 24px;
+  line-height: 1;
+  animation: breathe 2.4s ease-in-out infinite;
+}
+@keyframes breathe { 50% { opacity: 0.35; } }
+
+/* --- Écrans titre / fin --- */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 24px 16px;
+  background: rgba(3, 3, 5, 0.95);
+  text-align: center;
+  transition: opacity 1.6s ease;
+  overflow-y: auto;
+}
+.overlay[hidden] { display: none; }
+#title-screen { background: rgba(3, 3, 5, 0.72); }
+.overlay.fading { opacity: 0; pointer-events: none; }
+.overlay h1 {
+  font-weight: 400;
+  font-size: clamp(2.2rem, 7vw, 4.2rem);
+  letter-spacing: 0.12em;
+  margin: 0;
+}
+.overlay h2 {
+  font-weight: 400;
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+.overlay-actions { display: flex; gap: 12px; }
+.overlay-actions button { text-align: center; min-width: 140px; }
+#ending-text { max-width: 620px; font-size: 1.25rem; line-height: 1.55; color: #c9c2b5; }
+#ending-text p { margin: 0 0 0.9em; opacity: 0; animation: appear 2.4s ease forwards; }
+@keyframes appear { to { opacity: 1; } }
+
+#btn-sound {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 20;
+  font-size: 0.95rem;
+  padding: 4px 10px;
+  color: var(--ink-faint);
+  border-color: transparent;
+}
+#btn-sound[aria-pressed="false"] { text-decoration: line-through; }
+.hint { margin: -12px 0 0; color: var(--ink-faint); font-style: italic; }
+.load-error {
+  max-width: 520px;
+  margin: 0;
+  color: #d9a38a;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+.load-error code { font-size: 0.9em; color: #efd8c6; }
+
+#debug {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  margin: 0;
+  padding: 8px 10px;
+  font: 12px/1.4 ui-monospace, monospace;
+  color: #9f9;
+  background: rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  z-index: 10;
+}
+
+@media (max-width: 600px) {
+  #lines { font-size: 1.12rem; }
+  #panel { min-height: 280px; max-height: 58vh; }
+  #choices { grid-template-columns: 1fr; gap: 6px; }
+  button { padding: 8px 10px; font-size: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+}
+</style>
 </head>
 <body>
   <main id="game">
@@ -49,6 +300,9 @@
         </filter>
         <filter id="f-soft" x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation="1.4"/>
+        </filter>
+        <filter id="f-ember" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2.5"/>
         </filter>
         <filter id="f-glow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="3" result="b"/>
@@ -93,6 +347,7 @@
         <g id="run-marks"></g>
         <g id="avoid-marks"></g>
       </g>
+      <g id="dust"></g>
 
       <!-- Le fil de promesse non refermée, visible dès l'ouverture. -->
       <path id="thread" d="" fill="none" stroke="#c9b27f" stroke-width="1.6" stroke-linecap="round" opacity="0.85"/>
@@ -116,10 +371,13 @@
 
     <div id="title-screen" class="overlay">
       <h1>Make No Promises</h1>
+      <p class="hint">Avec le son, de préférence.</p>
       <div class="overlay-actions">
         <button id="btn-resume" type="button" hidden>Reprendre</button>
         <button id="btn-start" type="button">S'asseoir</button>
       </div>
+      <p id="load-error" class="load-error" hidden>Le jeu n'a pas pu se charger. Si tu as ouvert <code>src/index.html</code>, les fichiers <code>content.js</code>, <code>audio.js</code>, <code>game.js</code> et <code>style.css</code> doivent être dans le même dossier. Le plus simple : ouvrir le fichier autonome <code>index.html</code> à la racine du projet.</p>
+      <noscript><p class="load-error">Ce jeu a besoin de JavaScript.</p></noscript>
     </div>
 
     <div id="ending-screen" class="overlay" hidden>
@@ -130,10 +388,1730 @@
       </div>
     </div>
 
+    <button id="btn-sound" type="button" aria-pressed="true">son</button>
     <pre id="debug" hidden></pre>
   </main>
 
-  <script src="content.js"></script>
-  <script src="game.js"></script>
+  <script>
+// Make No Promises — contenu narratif.
+// Tous les textes et réglages d'équilibrage sont ici : on peut réécrire
+// le jeu sans toucher à la logique (game.js).
+window.MNP_CONTENT = {
+  // Poids hérité : le protagoniste ne part jamais de zéro.
+  inheritedWeight: 6,
+
+  // Poids ajouté par chacune des cinq réponses classiques.
+  weights: {
+    promise: 2,
+    think: 1,
+    delegate: 1.5,
+    refuse: 2,
+    double: 3.5,
+  },
+  suspendedDrift: 0.2,   // poids ajouté à chaque tour par branche restée « en suspens »
+  owedBroken: 2,         // poids d'un « oui promis » non tenu
+  listenRelief: 1.5,     // allègement quand on reste écouter jusqu'au bout
+  freeListenThreshold: 4, // écoutes nécessaires (hors rencontre finale) pour la fin de libération
+  avoidThreshold: 3,     // évitements nécessaires pour la fin « vide »
+
+  // Sorties par évitement : pas de branche, un poids léger, une marque terne.
+  avoidWeights: { silence: 0.5, flee: 0.5, deny: 0.5 },
+  silenceMs: 30000,      // délai avant que le silence ne réponde à ta place
+  silenceCueAt: 0.6,     // part du délai après laquelle la silhouette « attend »
+  denyMinMs: 1200,       // durée minimale hors de la page pour que le regard soit détourné
+
+  // Les cinq réponses du menu. Toutes sont des promesses.
+  choices: [
+    { id: 'promise',  label: '« Je te le promets. »' },
+    { id: 'think',    label: '« Je vais y réfléchir. »' },
+    { id: 'delegate', label: '« Va trouver un des miens. »' },
+    { id: 'refuse',   label: '« Non. »' },
+    { id: 'double',   label: '« Pas cette fois. Mais la prochaine, oui. »' },
+  ],
+
+  family: ['ta sœur', 'ton fils', 'ta mère', 'ton cousin', 'ta fille', 'ton frère'],
+
+  replies: {
+    promise: {
+      say: 'Je te le promets.',
+      out: 'Une branche s\'ouvre. {yes}',
+    },
+    think: {
+      say: 'Je vais y réfléchir.',
+      out: 'Une branche s\'ouvre et reste suspendue. Quelque part, quelqu\'un attend encore ta réponse, et l\'attendra toujours.',
+    },
+    delegate: {
+      say: 'Va trouver {family}. On s\'en occupera en mon nom.',
+      out: 'Une branche s\'ouvre, portée par {family}. Le nœud, lui, reste à ton poignet. {yes}',
+    },
+    refuse: {
+      say: 'Non.',
+      out: 'Une branche se fige. {no}',
+    },
+    double: {
+      say: 'Pas cette fois. Mais la prochaine demande, je l\'accepterai.',
+      out: 'Deux branches s\'ouvrent. {no} Et ailleurs, un oui attend déjà quelqu\'un qui n\'est pas encore venu.',
+    },
+  },
+
+  ui: {
+    owedReminder: 'Tu as promis d\'accepter celle-ci.',
+    owedKept: 'Tu tiens parole. Elle pèse quand même.',
+    owedBroken: 'Tu avais promis d\'accepter. La promesse d\'avant se fend sur celle-ci.',
+    listenEnd: 'La silhouette se tait. Elle s\'en va sans rien emporter.',
+    silenceCue: 'La silhouette attend.',
+  },
+
+  // Sorties hors menu autres que l'écoute. Aucune n'est nommée comme telle dans le jeu.
+  avoid: {
+    silence: {
+      say: 'Tu ne dis rien.',
+      out: 'La silhouette attend encore un peu, puis s\'en va. Elle ne saura jamais si tu l\'as entendue.',
+    },
+    flee: {
+      out: 'Tu te lèves et tu pars sans un mot. Derrière toi, la silhouette reste seule devant un trône vide.',
+      back: 'Quand tu reviens, il n\'y a plus personne. Le trône, lui, n\'a pas bougé.',
+    },
+    deny: {
+      out: 'Quand tu regardes à nouveau, il n\'y a plus personne. Tu ne sauras pas comment elle est partie.',
+    },
+  },
+
+  // Rencontre finale avec la silhouette récurrente : le menu se grippe.
+  final: {
+    jam: {
+      promise: 'Les mots se forment, puis se défont. Il n\'y a personne à qui les donner.',
+      think: 'Tu y réfléchis depuis avant le commencement.',
+      delegate: 'À qui ?',
+      double: 'La prochaine demande, c\'est celle-ci. Ça a toujours été celle-ci.',
+    },
+    refuseSay: 'Non.',
+    silence: 'Le silence dure. Elle ne part pas.',
+    flee: 'Tu te lèves. Le fil te retient au poignet. Tu te rassois.',
+    deny: 'Quand tu regardes à nouveau, elle est toujours là. Plus près.',
+    release: 'Le fil se détend. Il n\'y a plus de nœud — seulement deux mains qui l\'ont tenu.',
+  },
+
+  // Déroulé d'une partie. `recurring` marque la silhouette récurrente.
+  visitors: [
+    {
+      id: 'champ',
+      request: 'Il n\'a pas plu depuis quarante jours. Fais qu\'il pleuve sur mon champ.',
+      listen: [
+        'C\'était le champ de mon père. Il parlait aux nuages, lui aussi.',
+        'Je ne sais pas si c\'est la pluie que je veux. Je crois que je veux qu\'il reste quelque chose de lui.',
+        'C\'est drôle. Je ne l\'avais jamais dit à voix haute.',
+      ],
+      yes: 'Quelque part, il pleut sur un champ, et quelqu\'un pleure sans savoir pourquoi.',
+      no: 'Quelque part, un champ reste sec, pour toujours.',
+    },
+    {
+      id: 'dette',
+      request: 'Je dois de l\'argent à des gens qui ne pardonnent pas. Prête-moi. Je te rembourserai, je le jure.',
+      listen: [
+        'J\'ai emprunté pour soigner ma fille.',
+        'Elle va mieux. Personne ne me demande comment moi, je vais.',
+        '… Je crois que c\'était surtout ça, la dette.',
+      ],
+      yes: 'Quelque part, une dette est payée, et une autre commence — envers toi.',
+      no: 'Quelque part, on frappe à une porte, tard dans la nuit.',
+    },
+    {
+      id: 'fil-1',
+      recurring: 1,
+      request: 'Tu avais dit qu\'on partirait. Tu te souviens ? C\'est toujours vrai ?',
+      listen: [
+        'Je t\'attends toujours au même endroit.',
+        'J\'ai gardé le bout du fil. Je ne l\'ai pas lâché.',
+        'Je ne sais plus très bien à quoi tu ressembles.',
+      ],
+      yes: 'Quelque part, une silhouette prend la route avec toi. Tu n\'en sauras rien.',
+      no: 'Quelque part, quelqu\'un attend au bord d\'une route qui ne mène plus nulle part.',
+    },
+    {
+      id: 'fievre',
+      request: 'Mon fils brûle de fièvre depuis trois jours. Guéris-le. Je t\'en prie.',
+      listen: [
+        'Il a sept ans. Il a peur du noir, alors je laisse la lampe allumée.',
+        'Cette nuit, j\'ai eu peur que la lampe soit la dernière chose qu\'il voie.',
+        'Pardon. Il faut que je rentre. Il ne doit pas se réveiller seul.',
+      ],
+      yes: 'Quelque part, un enfant se réveille sans fièvre et demande à manger.',
+      no: 'Quelque part, une lampe reste allumée dans une chambre vide.',
+    },
+    {
+      id: 'poste',
+      request: 'Un mot de toi et ils m\'embaucheront. Recommande-moi. Tu ne le regretteras pas.',
+      listen: [
+        'Ça fait deux ans que je réponds à des annonces.',
+        'Au début j\'y croyais. Maintenant je récite les phrases qu\'on attend de moi.',
+        'Là, je ne récite rien. Ça fait du bien.',
+      ],
+      yes: 'Quelque part, quelqu\'un signe un contrat avec ton nom dans la marge.',
+      no: 'Quelque part, une lettre de refus de plus s\'ajoute à la pile.',
+    },
+    {
+      id: 'toile',
+      request: 'Regarde ce que j\'ai fait. Dis-moi que c\'est bien. Dis-moi que ça vaut quelque chose.',
+      listen: [
+        'Je l\'ai peint la nuit, pendant que tout le monde dormait.',
+        'Je ne sais pas si c\'est bien. Je sais que c\'est vrai.',
+        'Tu l\'as regardé. C\'est peut-être tout ce que je voulais.',
+      ],
+      yes: 'Quelque part, une toile est accrochée, et son auteur ne peint plus que pour toi.',
+      no: 'Quelque part, une toile est retournée contre un mur.',
+    },
+    {
+      id: 'fil-2',
+      recurring: 2,
+      request: 'On dit que tu as beaucoup de monde à aider. Garde-moi une place. N\'importe laquelle.',
+      listen: [
+        'Je t\'attends toujours au même endroit.',
+        'Le fil s\'est usé. Il tient encore.',
+        'Tu as changé. Moi aussi. Un peu dans ta direction.',
+      ],
+      yes: 'Quelque part, une place reste gardée, vide, au bout d\'une table.',
+      no: 'Quelque part, quelqu\'un cesse de mettre ton couvert.',
+    },
+    {
+      id: 'frere',
+      request: 'Réconcilie-moi avec mon frère. Toi, il t\'écoutera.',
+      listen: [
+        'On ne s\'est pas parlé depuis l\'enterrement de notre mère.',
+        'Je ne me souviens même plus de ce qu\'il a dit. Seulement que ça m\'a fait mal.',
+        'Je pourrais peut-être l\'appeler moi-même. Peut-être.',
+      ],
+      yes: 'Quelque part, deux frères se serrent la main parce que tu l\'as exigé.',
+      no: 'Quelque part, un téléphone ne sonne jamais.',
+    },
+    {
+      id: 'tilleul',
+      request: 'Je vais bientôt mourir. Dis-moi que ma vie a servi à quelque chose.',
+      listen: [
+        'J\'ai élevé quatre enfants. J\'ai enterré un mari. J\'ai planté un tilleul.',
+        'Le tilleul est plus haut que la maison, maintenant.',
+        'Je crois que je voulais juste que quelqu\'un l\'entende. Le tilleul.',
+      ],
+      yes: 'Quelque part, une vieille femme meurt rassurée par une phrase qui n\'est pas la sienne.',
+      no: 'Quelque part, une vieille femme meurt en doutant.',
+    },
+    {
+      id: 'village',
+      request: 'Quelque chose approche de notre village. Protège-nous.',
+      listen: [
+        'On ne sait pas ce que c\'est. On entend seulement le bruit, la nuit.',
+        'Les enfants ne dorment plus. Les adultes font semblant.',
+        'Je vais rentrer leur dire que quelqu\'un a écouté. C\'est déjà ça.',
+      ],
+      yes: 'Quelque part, un village est protégé, et ne saura jamais de quoi.',
+      no: 'Quelque part, un village éteint ses lumières et attend.',
+    },
+    {
+      id: 'priere',
+      request: 'Apprends-moi à prier. Je ne sais pas à qui m\'adresser.',
+      listen: [
+        'Enfant, je parlais au plafond avant de dormir.',
+        'Personne ne répondait. Ça ne me dérangeait pas.',
+        '… C\'était peut-être déjà ça.',
+      ],
+      yes: 'Quelque part, quelqu\'un récite chaque soir une prière que tu as écrite.',
+      no: 'Quelque part, quelqu\'un parle au plafond, et n\'attend plus rien.',
+    },
+    {
+      id: 'fil-3',
+      recurring: 3,
+      final: true,
+      request: 'Promets-moi que tu seras là.',
+      listen: [
+        'Je t\'attends toujours au même endroit.',
+        'Tu te souviens ? Tu tenais l\'autre bout.',
+        'Je n\'avais pas besoin d\'une promesse. Je voulais seulement que tu sois là.',
+        '…',
+      ],
+    },
+  ],
+
+  // Fins. {branches} est remplacé par le nombre de branches créées.
+  endings: {
+    free: {
+      title: 'Debout',
+      text: [
+        'Il n\'y a plus personne devant le trône.',
+        'Tu te lèves. Les chaînes ne te retiennent pas : elles n\'ont jamais été fixées qu\'à ta parole.',
+        'Derrière toi, les branches continuent de pousser dans le noir. Des pluies, des refus, des attentes. Elles sont vraies pour ceux qui les vivent. Tu ne les portes plus.',
+        'Tu pourrais revenir les défaire, une à une. Plus rien ne pèserait. Plus rien n\'aurait eu lieu.',
+        'Tu pourrais te rasseoir, et en faire pousser d\'autres, sans fin.',
+        'Tu restes debout, entre les deux.',
+      ],
+    },
+    weight: {
+      title: 'Le trône',
+      text: [
+        'Le fil se défait. Une seule chose, parmi toutes.',
+        'Les autres tiennent. {branches} branches poussent dans le noir, chacune vraie pour quelqu\'un. Tu les sens toutes à la fois.',
+        'Si tu les défaisais, tu serais libre, et {branches} mondes n\'auraient jamais existé.',
+        'Si tu continues, ils continuent. Et toi, tu restes sur la pierre.',
+        'On frappe. Quelqu\'un d\'autre attend déjà.',
+      ],
+    },
+    // Évitement répété : silence, fuite, regard détourné.
+    void: {
+      title: 'Personne',
+      text: [
+        'Plus personne ne vient.',
+        'Le trône ne pèse presque rien. Les marques que tu y as laissées sont creuses, grises, comme des empreintes de doigts sur une vitre.',
+        'Le fil s\'est dénoué, à la fin. C\'est la seule chose que tu aies vraiment entendue.',
+        'Tu es libre. Il n\'y a rien autour.',
+      ],
+    },
+  },
+};
+</script>
+  <script>
+// Make No Promises — ambiance sonore.
+// Tout est synthétisé avec Web Audio : aucun fichier à charger.
+// Un bourdon grave porte le poids (tension qui monte avec les promesses, son étouffé
+// par l'évitement) ; chaque geste du jeu a son propre son.
+window.MNP_AUDIO = (() => {
+  'use strict';
+
+  const KEY = 'mnp.sound.v1';
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let muted = false;
+  try { muted = localStorage.getItem(KEY) === 'off'; } catch { /* stockage indisponible */ }
+
+  let ctx = null;
+  let out, wet, droneLevel, duck, droneFilter, tension, air, whiteNoise;
+  const level = { weight: 0, avoid: 0 };
+
+  const ready = () => !!ctx && !muted;
+
+  function noiseBuffer(seconds, brown) {
+    const len = Math.floor(ctx.sampleRate * seconds);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i++) {
+      const w = Math.random() * 2 - 1;
+      if (brown) { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; } else d[i] = w;
+    }
+    return buf;
+  }
+
+  function impulse(seconds, decay) {
+    const len = Math.floor(ctx.sampleRate * seconds);
+    const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
+    return buf;
+  }
+
+  function osc(freq, type, gain, dest, detune = 0) {
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.value = freq;
+    o.detune.value = detune;
+    const g = ctx.createGain();
+    g.gain.value = gain;
+    o.connect(g);
+    g.connect(dest);
+    o.start();
+    return o;
+  }
+
+  function start() {
+    if (!AC) return;
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    try { ctx = new AC(); } catch { ctx = null; return; }
+
+    const comp = ctx.createDynamicsCompressor();
+    comp.connect(ctx.destination);
+    out = ctx.createGain();
+    out.gain.value = muted ? 0 : 0.9;
+    out.connect(comp);
+
+    const verb = ctx.createConvolver();
+    verb.buffer = impulse(3.8, 2.4);
+    wet = ctx.createGain();
+    wet.gain.value = 0.4;
+    wet.connect(verb);
+    verb.connect(out);
+
+    whiteNoise = noiseBuffer(2, false);
+
+    // Bourdon : quinte grave, légèrement désaccordée.
+    droneFilter = ctx.createBiquadFilter();
+    droneFilter.type = 'lowpass';
+    droneFilter.frequency.value = 420;
+    droneFilter.Q.value = 0.8;
+    droneLevel = ctx.createGain();
+    droneLevel.gain.value = 0;
+    duck = ctx.createGain();
+    duck.gain.value = 1;
+    droneFilter.connect(droneLevel);
+    droneLevel.connect(duck);
+    duck.connect(out);
+    duck.connect(wet);
+    osc(55, 'sine', 0.5, droneFilter);
+    osc(82.4, 'triangle', 0.16, droneFilter, -4);
+    osc(110, 'sine', 0.12, droneFilter, 5);
+    osc(164.8, 'sine', 0.05, droneFilter, 3);
+
+    // Tension : une seconde mineure qui frotte contre le bourdon, proportionnelle au poids.
+    tension = ctx.createGain();
+    tension.gain.value = 0;
+    tension.connect(droneFilter);
+    osc(58.27, 'sine', 0.6, tension);
+    osc(116.54, 'triangle', 0.25, tension, 7);
+
+    // Le filtre respire lentement.
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 0.045;
+    const lfoDepth = ctx.createGain();
+    lfoDepth.gain.value = 90;
+    lfo.connect(lfoDepth);
+    lfoDepth.connect(droneFilter.frequency);
+    lfo.start();
+
+    // Souffle de la salle.
+    const n = ctx.createBufferSource();
+    n.buffer = noiseBuffer(6, true);
+    n.loop = true;
+    const nf = ctx.createBiquadFilter();
+    nf.type = 'bandpass';
+    nf.frequency.value = 260;
+    nf.Q.value = 0.6;
+    air = ctx.createGain();
+    air.gain.value = 0;
+    n.connect(nf);
+    nf.connect(air);
+    air.connect(out);
+    n.start();
+
+    reset();
+  }
+
+  // Niveau de base du bourdon et du souffle (utilisé au départ et à chaque nouvelle partie).
+  function reset() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    droneLevel.gain.cancelScheduledValues(t);
+    droneLevel.gain.setTargetAtTime(0.16, t, 2.5);
+    air.gain.cancelScheduledValues(t);
+    air.gain.setTargetAtTime(0.05, t, 3);
+    duck.gain.cancelScheduledValues(t);
+    duck.gain.setTargetAtTime(1, t, 1);
+    apply();
+  }
+
+  function apply() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const w = Math.min(1, level.weight / 30);
+    const a = Math.min(1, level.avoid / 6);
+    tension.gain.setTargetAtTime(w * 0.24, t, 2);
+    droneFilter.frequency.setTargetAtTime(Math.max(140, 420 + w * 260 - a * 280), t, 2);
+  }
+
+  function update(weight, avoid) {
+    level.weight = weight;
+    level.avoid = avoid;
+    apply();
+  }
+
+  // ---------------------------------------------------------------- briques
+
+  function tone(freq, o = {}) {
+    if (!ready()) return;
+    const t = ctx.currentTime + (o.at || 0);
+    const a = o.a ?? 0.01, d = o.d ?? 2, peak = o.gain ?? 0.08;
+    const src = ctx.createOscillator();
+    src.type = o.type || 'sine';
+    src.frequency.setValueAtTime(freq, t);
+    if (o.glideTo) src.frequency.exponentialRampToValueAtTime(o.glideTo, t + a + d);
+    if (o.detune) src.detune.value = o.detune;
+    let node = src;
+    if (o.lp) {
+      const f = ctx.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = o.lp;
+      node.connect(f);
+      node = f;
+    }
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + a);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + a + d);
+    node.connect(g);
+    route(g, o);
+    src.start(t);
+    src.stop(t + a + d + 0.1);
+  }
+
+  function noise(o = {}) {
+    if (!ready()) return;
+    const t = ctx.currentTime + (o.at || 0);
+    const dur = o.dur ?? 0.03;
+    const src = ctx.createBufferSource();
+    src.buffer = whiteNoise;
+    src.loop = true;
+    const f = ctx.createBiquadFilter();
+    f.type = o.type || 'bandpass';
+    f.frequency.setValueAtTime(o.freq ?? 3000, t);
+    if (o.sweepTo) f.frequency.exponentialRampToValueAtTime(o.sweepTo, t + dur);
+    f.Q.value = o.q ?? 1;
+    const g = ctx.createGain();
+    const a = o.a ?? 0.002;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(o.gain ?? 0.1, t + a);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + a + dur);
+    src.connect(f);
+    f.connect(g);
+    route(g, o);
+    src.start(t, Math.random() * 1.5);
+    src.stop(t + a + dur + 0.05);
+  }
+
+  function route(node, o) {
+    let last = node;
+    if (o.pan && ctx.createStereoPanner) {
+      const p = ctx.createStereoPanner();
+      p.pan.value = o.pan;
+      node.connect(p);
+      last = p;
+    }
+    last.connect(out);
+    const send = o.wet ?? 0.5;
+    if (send) {
+      const s = ctx.createGain();
+      s.gain.value = send;
+      last.connect(s);
+      s.connect(wet);
+    }
+  }
+
+  function bell(freq, o = {}) {
+    const g = o.gain ?? 0.06, d = o.d ?? 3;
+    [[1, 1], [2.01, 0.45], [3.03, 0.22], [4.21, 0.1]].forEach(([m, k]) =>
+      tone(freq * m, { ...o, gain: g * k, d: d / Math.sqrt(m), a: 0.004 }));
+  }
+
+  function thud(o = {}) {
+    tone(o.freq ?? 110, { glideTo: 36, a: 0.004, d: 0.7, gain: o.gain ?? 0.28, wet: 0.35, at: o.at, pan: o.pan });
+    noise({ type: 'lowpass', freq: 380, dur: 0.18, gain: (o.gain ?? 0.28) * 0.5, at: o.at, wet: 0.2, pan: o.pan });
+  }
+
+  function ducking(to, hold) {
+    if (!ready()) return;
+    const t = ctx.currentTime;
+    duck.gain.cancelScheduledValues(t);
+    duck.gain.setTargetAtTime(to, t, 0.5);
+    duck.gain.setTargetAtTime(1, t + hold, 1.8);
+  }
+
+  // ---------------------------------------------------------------- événements
+
+  const on = {
+    // Une branche de réalité s'ouvre.
+    branch(type) {
+      if (type === 'promise') bell(659.3, { gain: 0.07, d: 3.5 });
+      else if (type === 'think') {
+        // Suspendu : deux notes qui frottent et ne se résolvent pas.
+        tone(587.3, { a: 0.9, d: 5, gain: 0.035 });
+        tone(622.3, { a: 1.2, d: 5, gain: 0.02, at: 0.3 });
+      } else if (type === 'delegate') {
+        bell(440, { gain: 0.05 });
+        bell(329.6, { gain: 0.035, at: 0.5, pan: -0.4 });
+      } else if (type === 'refuse') thud();
+      else if (type === 'future') bell(880, { gain: 0.025, at: 0.9, wet: 1.2, pan: 0.3 });
+      else if (type === 'broken') { on.crack(0.6); bell(466.2, { gain: 0.04, detune: -30, at: 0.2 }); }
+    },
+
+    // La pierre se fend : crépitements proportionnels à l'avancée des fissures.
+    crack(amount) {
+      const n = 3 + Math.round(Math.min(1.5, amount) * 14);
+      const span = 0.25 + Math.min(1.5, amount) * 0.9;
+      for (let i = 0; i < n; i++) {
+        noise({
+          type: 'highpass', freq: 1500 + Math.random() * 3500, q: 0.7,
+          dur: 0.004 + Math.random() * 0.02, gain: 0.04 + Math.random() * 0.1,
+          at: Math.random() * span, pan: (Math.random() - 0.5) * 0.5, wet: 0.3,
+        });
+      }
+      tone(46, { type: 'triangle', a: 0.05, d: 0.4 + span, gain: 0.05 + Math.min(1, amount) * 0.08, lp: 300, wet: 0.4 });
+    },
+
+    // Une chaîne se tend.
+    chain() {
+      for (let i = 0; i < 3; i++) {
+        [1180, 1710, 2390, 3170].forEach((f) =>
+          tone(f * (0.95 + Math.random() * 0.1), { a: 0.002, d: 0.35, gain: 0.012, at: i * 0.13, pan: 0.35, wet: 0.6 }));
+      }
+    },
+
+    // Les fissures reculent.
+    heal() {
+      tone(392, { a: 0.7, d: 3, gain: 0.03 });
+      tone(587.3, { a: 1, d: 3, gain: 0.02, at: 0.2 });
+    },
+
+    arrive() { noise({ type: 'lowpass', freq: 260, sweepTo: 900, dur: 1.6, a: 0.6, gain: 0.035, wet: 0.6, pan: -0.5 }); },
+
+    // Écouter : le bourdon s'efface un moment.
+    listen() {
+      ducking(0.5, 3);
+      tone(261.6, { a: 0.4, d: 1.6, gain: 0.02 });
+    },
+
+    presence() {
+      ducking(0.4, 4);
+      [196, 293.7, 392].forEach((f, i) => tone(f, { a: 1.3, d: 3.8, gain: 0.028, at: i * 0.15 }));
+    },
+
+    // Le silence s'installe.
+    hush() { ducking(0.3, 6); },
+
+    steps(dir) {
+      for (let i = 0; i < 6; i++) {
+        tone(92, { glideTo: 52, a: 0.003, d: 0.16, gain: 0.07 * (1 - i / 7), at: 0.2 + i * 0.42, pan: dir * (0.15 + i / 7), wet: 0.4 });
+      }
+    },
+
+    whoosh() { noise({ type: 'bandpass', freq: 700, sweepTo: 180, dur: 1.3, a: 0.3, gain: 0.05, q: 0.8, wet: 0.8 }); },
+
+    // Le menu se grippe.
+    jam() {
+      tone(110, { type: 'square', a: 0.005, d: 0.3, gain: 0.03, lp: 700, wet: 0.2 });
+      tone(116.5, { type: 'square', a: 0.005, d: 0.3, gain: 0.03, lp: 700, wet: 0.2 });
+    },
+
+    loop() { thud({ gain: 0.14 }); },
+
+    // Le fil se dénoue.
+    release() {
+      if (!ready()) return;
+      const t = ctx.currentTime;
+      tension.gain.setTargetAtTime(0, t, 1.5);
+      tone(220, { glideTo: 440, a: 1.2, d: 4, gain: 0.04 });
+      [440, 554.4, 659.3].forEach((f, i) => bell(f, { gain: 0.025, at: 1.5 + i * 0.7, d: 5 }));
+    },
+
+    ending(kind) {
+      if (!ready()) return;
+      const t = ctx.currentTime;
+      if (kind === 'free') {
+        droneLevel.gain.setTargetAtTime(0.06, t, 3);
+        [220, 277.2, 329.6, 440].forEach((f, i) => tone(f, { a: 2.2, d: 7, gain: 0.025, at: i * 0.4 }));
+      } else if (kind === 'weight') {
+        tension.gain.setTargetAtTime(0.3, t, 2);
+        [55, 58.3, 82.4].forEach((f) => tone(f, { type: 'triangle', a: 2, d: 8, gain: 0.07, lp: 400 }));
+      } else {
+        // Personne : presque plus rien.
+        droneLevel.gain.setTargetAtTime(0.008, t, 3);
+        air.gain.setTargetAtTime(0.02, t, 3);
+      }
+    },
+  };
+
+  function setMuted(m) {
+    muted = m;
+    try { localStorage.setItem(KEY, m ? 'off' : 'on'); } catch { /* idem */ }
+    if (ctx) out.gain.setTargetAtTime(m ? 0 : 0.9, ctx.currentTime, 0.3);
+  }
+
+  function play(name, ...args) {
+    if (!ready() || !on[name]) return;
+    try { on[name](...args); } catch { /* le son ne doit jamais bloquer le jeu */ }
+  }
+
+  return { start, reset, update, play, setMuted, get muted() { return muted; } };
+})();
+</script>
+  <script>
+// Make No Promises — prototype 1.
+// Logique : état, rendu SVG du poids, cycle des demandes, mécanique « rester et écouter ».
+(() => {
+  'use strict';
+
+  const C = window.MNP_CONTENT;
+  const audio = window.MNP_AUDIO || { start() {}, reset() {}, update() {}, play() {}, setMuted() {}, muted: true };
+  const SAVE_KEY = 'mnp.save.v1';
+  const META_KEY = 'mnp.meta.v1';
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const params = new URLSearchParams(location.search);
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------------------------------------------------------------- stockage
+
+  const store = {
+    get(key) { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } },
+    set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* stockage indisponible */ } },
+    del(key) { try { localStorage.removeItem(key); } catch { /* idem */ } },
+  };
+  if (params.has('reset')) { store.del(SAVE_KEY); store.del(META_KEY); }
+
+  function newState() {
+    return {
+      turn: 0,
+      weight: C.inheritedWeight, // poids hérité : on ne part jamais de zéro
+      promiseCount: 0,           // réponses prises dans le menu (les cinq types)
+      listenCount: 0,            // « rester et écouter » menés jusqu'au bout
+      avoidCount: 0,             // v2 : silence, fuite, regard détourné
+      avoidMarks: [],            // v2 : { kind: 'silence' | 'fuite' | 'deni' }
+      branches: [],              // { type, seed, visitor }
+      suspended: 0,              // branches « j'y réfléchis », jamais refermées
+      owedYes: false,            // « refuser mais promettre la suivante » en attente
+      familyIndex: 0,
+      history: [],               // { visitor, choice }
+      recurring: { appearances: 0, recognition: 0, released: false },
+    };
+  }
+
+  let state = newState();
+  let meta = store.get(META_KEY) || { runs: [] };
+  const save = () => store.set(SAVE_KEY, state);
+
+  // ---------------------------------------------------------------- utilitaires
+
+  const $ = (sel) => document.querySelector(sel);
+  const clamp = (x, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
+  const wait = (ms) => new Promise((res) => setTimeout(res, reducedMotion ? 0 : ms));
+
+  function svg(tag, attrs = {}, parent) {
+    const node = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  function hash(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+
+  function rng(seed) {
+    let a = typeof seed === 'string' ? hash(seed) : seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function tween(ms, fn) {
+    return new Promise((res) => {
+      if (reducedMotion) { fn(1); res(); return; }
+      const t0 = performance.now();
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / ms);
+        fn(k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
+        if (k < 1) requestAnimationFrame(step); else res();
+      };
+      requestAnimationFrame(step);
+    });
+  }
+
+  // ---------------------------------------------------------------- formes
+
+  // Contour du protagoniste (origine : centre de la tête). La silhouette récurrente
+  // finit par porter exactement ce contour, en miroir.
+  const SELF = {
+    head: { rx: 23, ry: 28, rot: -9 },
+    body: 'M -12 24 C -26 30 -52 30 -62 50 C -72 72 -70 110 -68 142 L 68 142 C 70 112 72 84 64 64 C 56 46 30 38 12 25 Z',
+    arm: 'M -56 52 C -68 66 -76 78 -80 88',
+    robe: 'M -68 142 C -70 190 -76 250 -80 290 L 80 290 C 76 250 70 190 68 142 Z',
+  };
+  const PROTAG = { x: 748, y: 268 };
+  const HAND = { x: PROTAG.x - 80, y: PROTAG.y + 88 }; // là où le fil est noué
+  const FEET_Y = 540;
+  const HEAD_H = 290;
+  const VISITOR_X = 300;
+
+  function drawSelf(parent, attrs) {
+    const g = svg('g', attrs, parent);
+    svg('ellipse', { cx: 0, cy: 0, rx: SELF.head.rx, ry: SELF.head.ry, transform: `rotate(${SELF.head.rot})` }, g);
+    svg('path', { d: SELF.body }, g);
+    return g;
+  }
+
+  function drawArm(parent, d, width = 15) {
+    return svg('path', { d, fill: 'none', 'stroke-width': width, 'stroke-linecap': 'round' }, parent);
+  }
+
+  // Silhouette générique, informe, pieds à l'origine.
+  function genShape(seed) {
+    const r = rng(seed);
+    const H = 272 + r() * 40;
+    const lean = (r() - 0.5) * 22;
+    const hr = 20 + r() * 8;
+    const hry = hr * (1.08 + r() * 0.18);
+    const tilt = (r() - 0.5) * 18;
+    const sh = 46 + r() * 24;
+    const neckY = -H + hry - 2;
+    const shY = neckY + 20 + r() * 12;
+    const waist = 36 + r() * 26;
+    const hem = 54 + r() * 44;
+    const d = [
+      `M ${lean - 9} ${neckY}`,
+      `C ${lean - sh * 0.55} ${shY - 6} ${lean - sh} ${shY} ${lean - sh + 2} ${shY + 26}`,
+      `C ${-waist - 6} ${shY + 90} ${-waist} -90 ${-hem} 0`,
+      `L ${hem} 0`,
+      `C ${waist} -90 ${waist + 6} ${shY + 90} ${lean + sh - 2} ${shY + 26}`,
+      `C ${lean + sh} ${shY} ${lean + sh * 0.55} ${shY - 6} ${lean + 9} ${neckY}`,
+      'Z',
+    ].join(' ');
+    return { head: { cx: lean, cy: -H, rx: hr, ry: hry, rot: tilt }, d, shoulder: { x: lean + sh - 6, y: shY + 20 } };
+  }
+
+  // ---------------------------------------------------------------- scène statique
+
+  const el = {
+    scene: $('#scene'),
+    branches: $('#branches'),
+    cracksBack: $('#cracks-back'),
+    cracksFront: $('#cracks-front'),
+    chains: $('#chains'),
+    runMarks: $('#run-marks'),
+    avoidMarks: $('#avoid-marks'),
+    thread: $('#thread'),
+    knot: $('#knot'),
+    throne: $('#throne'),
+    throneFront: $('#throne-front'),
+    dust: $('#dust'),
+    protagonist: $('#protagonist'),
+    robe: $('#robe'),
+    visitor: $('#visitor'),
+    visitorBody: $('#visitor-body'),
+    visitorFeatures: $('#visitor-features'),
+    disp: $('#f-visitor-disp'),
+    blur: $('#f-visitor-blur'),
+    vignette: $('#vignette'),
+    presence: $('#presence'),
+    lines: $('#lines'),
+    choices: $('#choices'),
+    cont: $('#continue'),
+    panel: $('#panel'),
+    title: $('#title-screen'),
+    ending: $('#ending-screen'),
+    debug: $('#debug'),
+  };
+
+  // Protagoniste
+  const protagShape = drawSelf($('#protagonist-shape'), { fill: '#0b0b0f', stroke: '#4a4550', 'stroke-width': 1, 'stroke-opacity': 0.5 });
+  const protagArmG = svg('g', { transform: `translate(${PROTAG.x} ${PROTAG.y})` }, $('#protagonist-arm'));
+  drawArm(protagArmG, SELF.arm).setAttribute('stroke', '#0b0b0f');
+  void protagShape;
+
+  // Fissures : chacune apparaît à partir d'un seuil de poids.
+  const CRACK_DEFS = [
+    ['back', 'M 760 96 L 755 124 L 764 150 L 757 176 L 762 200', 0],
+    ['front', 'M 640 506 L 610 522 L 578 520 L 540 544', 1],
+    ['back', 'M 696 200 L 712 214 L 706 236 L 718 252', 3],
+    ['front', 'M 880 506 L 912 528 L 952 536', 5],
+    ['back', 'M 826 176 L 810 196 L 818 216 L 806 238', 6],
+    ['front', 'M 680 440 L 692 458 L 684 476 L 694 498', 8],
+    ['back', 'M 760 122 L 774 140 L 770 162 L 786 182 L 780 206', 9],
+    ['front', 'M 700 528 L 680 556 L 642 570 L 600 598', 11],
+    ['front', 'M 840 440 L 830 462 L 842 480 L 834 498', 13],
+    ['back', 'M 730 152 L 740 172 L 734 196 L 744 214', 14],
+    ['front', 'M 820 528 L 850 562 L 846 600', 16],
+    ['front', 'M 540 544 L 480 550 L 430 568 L 370 566', 19],
+    ['front', 'M 600 598 L 540 612 L 460 606', 22],
+    ['front', 'M 670 406 L 700 414 L 730 408', 25],
+    ['front', 'M 370 566 L 300 580 L 220 574 L 120 590', 28],
+    // Ramifications : elles partent des fissures principales.
+    ['front', 'M 610 522 L 596 540 L 598 556', 10],
+    ['back', 'M 757 176 L 744 186 L 738 204', 12],
+    ['front', 'M 912 528 L 918 548 L 936 560', 15],
+    ['back', 'M 712 214 L 700 222 L 697 238', 17],
+    ['back', 'M 818 216 L 826 230 L 822 246', 20],
+    ['front', 'M 680 556 L 700 584 L 696 604', 21],
+    ['back', 'M 770 162 L 782 158 L 796 166', 24],
+    ['front', 'M 430 568 L 424 590 L 402 604', 26],
+    ['front', 'M 850 562 L 880 574 L 900 598', 29],
+  ];
+
+  // Trois couches par fissure : braise (quand le poids devient lourd), trait sombre,
+  // éclat de lumière au moment où elle avance ou recule.
+  const crackLayers = {};
+  for (const layer of ['back', 'front']) {
+    const parent = layer === 'back' ? el.cracksBack : el.cracksFront;
+    crackLayers[layer] = {
+      ember: svg('g', { class: 'ember', opacity: 0 }, parent),
+      dark: svg('g', { class: 'dark' }, parent),
+      flash: svg('g', { class: 'flash' }, parent),
+    };
+  }
+  const CRACKS = CRACK_DEFS.map(([layer, d, th], i) => {
+    const L = crackLayers[layer];
+    const dash = { d, pathLength: 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1 };
+    const ember = svg('path', dash, L.ember);
+    ember.style.animationDelay = `${-(i * 0.73) % 4.5}s`;
+    const dark = svg('path', dash, L.dark);
+    const flash = svg('path', { d, pathLength: 1 }, L.flash);
+    return { ember, dark, flash, th, fill: 0, len: dark.getTotalLength() };
+  });
+
+  // Chaînes : chacune se tend à partir d'un seuil de poids.
+  const CHAINS = [
+    { a: [661, 420], c: [592, 525], b: [548, 568], th: 0 },
+    { a: [859, 420], c: [928, 525], b: [972, 568], th: 4 },
+    { a: [693, 236], c: [618, 330], b: [596, 520], th: 10 },
+    { a: [827, 236], c: [902, 330], b: [924, 520], th: 16 },
+    { a: [760, 470], c: [728, 560], b: [690, 614], th: 23 },
+  ].map(({ a, b, c, th }) => {
+    const g = svg('g', { opacity: 0 }, el.chains);
+    const q = (t) => [
+      (1 - t) ** 2 * a[0] + 2 * (1 - t) * t * c[0] + t * t * b[0],
+      (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1],
+    ];
+    const n = Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / 10);
+    for (let i = 0; i <= n; i++) {
+      const [x, y] = q(i / n);
+      const [x2, y2] = q(Math.min(1, (i + 1) / n));
+      const ang = (Math.atan2(y2 - y, x2 - x) * 180) / Math.PI;
+      svg('ellipse', { cx: x, cy: y, rx: i % 2 ? 6.5 : 3, ry: 3.4, transform: `rotate(${ang} ${x} ${y})` }, g);
+    }
+    return { node: g, th, on: false };
+  });
+
+  // Éclat le long du segment qui vient de se fendre (ou de se refermer), et poussière.
+  function crackFlash(c, from, to, kind) {
+    if (reducedMotion || !c.flash.animate) return;
+    const p = c.flash;
+    p.style.stroke = kind === 'grow' ? '#f1e3bd' : '#bcd3e0';
+    p.style.strokeDasharray = `${Math.max(0.001, to - from)} 2`;
+    p.style.strokeDashoffset = -from;
+    p.animate([{ opacity: 0 }, { opacity: 0.95, offset: 0.2 }, { opacity: 0 }], {
+      duration: kind === 'grow' ? 1900 : 2800, delay: kind === 'grow' ? 250 : 0, easing: 'ease-out',
+    });
+    if (kind === 'grow') {
+      const pt = c.dark.getPointAtLength(c.len * to);
+      dust(pt.x, pt.y);
+    }
+  }
+
+  function dust(x, y) {
+    for (let i = 0; i < 7; i++) {
+      const g = svg('circle', { cx: x, cy: y, r: 0.6 + Math.random() * 1.1, fill: '#7a7482', opacity: 0 }, el.dust);
+      const dx = (Math.random() - 0.5) * 18, dy = 18 + Math.random() * 42;
+      const anim = g.animate([
+        { transform: 'translate(0px, 0px)', opacity: 0.9 },
+        { transform: `translate(${dx}px, ${dy}px)`, opacity: 0 },
+      ], { duration: 1200 + Math.random() * 900, delay: 400 + Math.random() * 900, easing: 'cubic-bezier(.3,.1,.7,1)', fill: 'both' });
+      anim.onfinish = () => g.remove();
+    }
+  }
+
+  function shakeThrone() {
+    if (reducedMotion) return;
+    for (const n of [el.throne, el.throneFront]) {
+      n.classList.remove('shaking');
+      void n.getBBox();
+      n.classList.add('shaking');
+    }
+  }
+
+  // ---------------------------------------------------------------- branches
+
+  const BRANCH_STYLE = {
+    promise:  { stroke: '#caa55a', width: 1.2, opacity: 0.6 },
+    think:    { stroke: '#8d8da0', width: 1.1, opacity: 0.5, dash: '2 7' },
+    delegate: { stroke: '#7f95b8', width: 1.1, opacity: 0.55 },
+    refuse:   { stroke: '#8a4a42', width: 1.3, opacity: 0.55 },
+    future:   { stroke: '#d9ccb0', width: 1, opacity: 0.45, dash: '1 5' },
+    broken:   { stroke: '#4a434f', width: 1.6, opacity: 0.8 },
+  };
+
+  function drawBranch(b, animate) {
+    const r = rng(b.seed);
+    const st = BRANCH_STYLE[b.type];
+    const g = svg('g', {}, el.branches);
+    const sx = 715 + r() * 90, sy = 150 + r() * 50;
+    const ex = 30 + r() * 940, ey = 18 + r() * 260;
+    const c1 = [sx + (r() - 0.5) * 140, sy - 60 - r() * 80];
+    const c2 = [ex + (r() - 0.5) * 160, ey + 40 + r() * 80];
+    const bez = (t) => [0, 1].map((k) =>
+      (1 - t) ** 3 * [sx, sy][k] + 3 * (1 - t) ** 2 * t * c1[k] + 3 * (1 - t) * t * t * c2[k] + t ** 3 * [ex, ey][k]);
+
+    let d;
+    if (b.type === 'refuse') {
+      // Réalité figée : trajet anguleux, rigide.
+      d = `M ${sx} ${sy}`;
+      for (let i = 1; i <= 4; i++) {
+        const [x, y] = bez(i / 4);
+        d += ` L ${x + (i < 4 ? (r() - 0.5) * 40 : 0)} ${y + (i < 4 ? (r() - 0.5) * 30 : 0)}`;
+      }
+    } else if (b.type === 'broken') {
+      const [mx, my] = bez(0.5), [nx, ny] = bez(0.56);
+      d = `M ${sx} ${sy} L ${mx} ${my} M ${nx + 6} ${ny - 4} L ${ex} ${ey}`;
+    } else {
+      d = `M ${sx} ${sy} C ${c1[0]} ${c1[1]} ${c2[0]} ${c2[1]} ${ex} ${ey}`;
+    }
+
+    const path = svg('path', {
+      d, stroke: st.stroke, 'stroke-width': st.width, 'stroke-linecap': 'round', opacity: st.opacity,
+    }, g);
+    if (st.dash) path.setAttribute('stroke-dasharray', st.dash);
+
+    if (b.type === 'delegate') {
+      const [nx, ny] = bez(0.45); // le proche qui porte la promesse à ta place
+      svg('circle', { cx: nx, cy: ny, r: 3.2, fill: st.stroke }, g);
+    }
+    if (b.type === 'promise' || b.type === 'delegate') {
+      svg('circle', { cx: ex, cy: ey, r: 2.4, fill: st.stroke, filter: 'url(#f-glow)' }, g);
+    } else if (b.type === 'think' || b.type === 'future') {
+      svg('circle', { cx: ex, cy: ey, r: 3, fill: 'none', stroke: st.stroke, 'stroke-width': 1 }, g);
+    } else if (b.type === 'refuse') {
+      svg('path', { d: `M ${ex - 3} ${ey - 3} L ${ex + 3} ${ey + 3} M ${ex + 3} ${ey - 3} L ${ex - 3} ${ey + 3}`, stroke: st.stroke, 'stroke-width': 1.3 }, g);
+    }
+
+    if (animate && !reducedMotion) {
+      if (st.dash) {
+        g.style.opacity = 0;
+        requestAnimationFrame(() => requestAnimationFrame(() => { g.style.transition = 'opacity 3s'; g.style.opacity = 1; }));
+      } else {
+        path.setAttribute('pathLength', 1);
+        path.style.strokeDasharray = 1;
+        path.style.strokeDashoffset = 1;
+        g.querySelectorAll('circle').forEach((c) => { c.style.opacity = 0; });
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          path.style.strokeDashoffset = 0;
+          g.querySelectorAll('circle').forEach((c) => { c.style.transitionDelay = '2.6s'; c.style.opacity = 1; });
+        }));
+      }
+    }
+  }
+
+  function addBranch(type, visitor) {
+    const b = { type, visitor, seed: hash(`${visitor}:${type}:${state.branches.length}:${meta.runs.length}`) };
+    state.branches.push(b);
+    drawBranch(b, true);
+    audio.play('branch', type);
+  }
+
+  // ---------------------------------------------------------------- rendu du poids
+
+  // `instant` : remise en place sans effets (nouvelle partie, reprise).
+  function render(opts = {}) {
+    const w = state.weight;
+    let grown = 0, healed = 0;
+    for (const c of CRACKS) {
+      const f = clamp((w - c.th) / 4);
+      if (!opts.instant && Math.abs(f - c.fill) > 0.02) {
+        if (f > c.fill) { grown += f - c.fill; crackFlash(c, c.fill, f, 'grow'); }
+        else { healed += c.fill - f; crackFlash(c, f, c.fill, 'heal'); }
+      }
+      c.fill = f;
+      c.dark.style.strokeDashoffset = 1 - f;
+      c.ember.style.strokeDashoffset = 1 - f;
+    }
+    // Sous un poids lourd, les fissures rougeoient.
+    const ember = clamp((w - 10) / 18).toFixed(3);
+    crackLayers.back.ember.style.opacity = ember;
+    crackLayers.front.ember.style.opacity = ember;
+    if (grown > 0.02) { audio.play('crack', grown); if (grown > 0.5) shakeThrone(); }
+    if (healed > 0.02) audio.play('heal');
+
+    for (const ch of CHAINS) {
+      const on = w >= ch.th;
+      if (on && !ch.on && !opts.instant) audio.play('chain');
+      ch.on = on;
+      ch.node.style.opacity = on ? 1 : 0;
+    }
+    audio.update(w, state.avoidCount);
+    el.vignette.style.opacity = (0.42 + clamp(w / 30) * 0.5).toFixed(3);
+    // L'évitement ne fissure pas : il ternit.
+    const dull = clamp(state.avoidCount / 6);
+    el.scene.style.filter = dull ? `saturate(${(1 - dull * 0.75).toFixed(3)}) brightness(${(1 - dull * 0.2).toFixed(3)})` : '';
+    renderAvoidMarks();
+    renderDebug();
+  }
+
+  // Marques des parties précédentes, gravées sur la marche.
+  function renderRunMarks() {
+    el.runMarks.replaceChildren();
+    meta.runs.slice(-16).forEach((run, i) => {
+      const x = 644 + i * 15, y = 507;
+      if (run.ending === 'free') {
+        svg('line', { x1: x, y1: y - 4, x2: x, y2: y + 4, stroke: '#cfc4a8', 'stroke-width': 1, opacity: 0.6 }, el.runMarks);
+      } else if (run.ending === 'void') {
+        svg('circle', { cx: x, cy: y, r: 4, fill: 'none', stroke: '#55555c', 'stroke-width': 1, 'stroke-dasharray': '2 2' }, el.runMarks);
+      } else {
+        svg('rect', { x: x - 3, y: y - 4, width: 6, height: 8, fill: '#5a2f2b' }, el.runMarks);
+      }
+    });
+  }
+
+  // Marques d'évitement : ternes, creuses, différentes des promesses.
+  // Silence : cercle en pointillés. Fuite : empreintes vides. Regard détourné : paupière close.
+  function renderAvoidMarks() {
+    if (el.avoidMarks.childElementCount > state.avoidMarks.length) el.avoidMarks.replaceChildren();
+    const ink = { fill: 'none', stroke: '#4d4d52', 'stroke-width': 1 };
+    for (let i = el.avoidMarks.childElementCount; i < state.avoidMarks.length; i++) {
+      const r = rng(`avoid:${i}`);
+      const g = svg('g', { opacity: 0.75 }, el.avoidMarks);
+      const kind = state.avoidMarks[i].kind;
+      if (kind === 'flee') {
+        const x = 880 + r() * 90, y = 530 + r() * 60;
+        svg('ellipse', { ...ink, cx: x, cy: y, rx: 5, ry: 2.6 }, g);
+        svg('ellipse', { ...ink, cx: x + 14, cy: y + 6, rx: 5, ry: 2.6 }, g);
+      } else if (kind === 'deny') {
+        const x = 560 + r() * 300, y = 530 + r() * 60;
+        svg('path', { ...ink, d: `M ${x - 9} ${y} Q ${x} ${y + 6} ${x + 9} ${y}` }, g);
+        for (const dx of [-5, 0, 5]) svg('path', { ...ink, d: `M ${x + dx} ${y + 3.5} l ${dx * 0.3} 4` }, g);
+      } else {
+        svg('circle', { ...ink, cx: 600 + r() * 280, cy: 525 + r() * 60, r: 6 + r() * 5, 'stroke-dasharray': '3 3' }, g);
+      }
+    }
+  }
+
+  function renderDebug() {
+    if (!params.has('debug')) return;
+    el.debug.hidden = false;
+    const s = state;
+    el.debug.textContent = [
+      `tour         ${s.turn + 1}/${C.visitors.length}`,
+      `poids        ${s.weight.toFixed(2)}`,
+      `promesses    ${s.promiseCount}`,
+      `écoutes      ${s.listenCount}`,
+      `évitements   ${s.avoidCount} (${s.avoidMarks.map((m) => m.kind).join(', ')})`,
+      `en suspens   ${s.suspended}`,
+      `oui dû       ${s.owedYes}`,
+      `branches     ${s.branches.length}`,
+      `récurrente   app=${s.recurring.appearances} reco=${s.recurring.recognition.toFixed(2)}`,
+      `parties      ${meta.runs.map((r) => r.ending).join(', ') || '—'}`,
+    ].join('\n');
+  }
+
+  // ---------------------------------------------------------------- silhouette
+
+  const vis = { x: -140, o: 0, attached: false };
+  const prot = { dx: 0, dy: 0, o: 1 };
+
+  function applyProtag() {
+    const t = `translate(${PROTAG.x + prot.dx} ${PROTAG.y + prot.dy})`;
+    el.protagonist.setAttribute('transform', t);
+    protagArmG.setAttribute('transform', t);
+    el.robe.setAttribute('transform', `translate(${prot.dx} ${prot.dy})`);
+    for (const n of [el.protagonist, protagArmG, el.robe]) n.setAttribute('opacity', prot.o.toFixed(3));
+    el.knot.setAttribute('cx', HAND.x + prot.dx);
+    el.knot.setAttribute('cy', HAND.y + prot.dy);
+    el.thread.setAttribute('d', threadPath());
+  }
+
+  function threadPath() {
+    const hx = HAND.x + prot.dx, hy = HAND.y + prot.dy;
+    if (vis.attached) {
+      const vx = vis.x + 80, vy = FEET_Y - HEAD_H + 88;
+      const mx = (hx + vx) / 2;
+      return `M ${hx} ${hy} C ${hx - 20} ${hy + 150} ${mx + 70} 578 ${mx} 578 S ${vx + 12} ${vy + 150} ${vx} ${vy}`;
+    }
+    return `M ${hx} ${hy} C ${hx - 20} ${hy + 150} 560 548 480 552 S 120 546 -40 548`;
+  }
+
+  function applyVisitor() {
+    el.visitor.setAttribute('transform', `translate(${vis.x} ${FEET_Y})`);
+    el.visitor.setAttribute('opacity', vis.o.toFixed(3));
+    el.thread.setAttribute('d', threadPath());
+  }
+
+  function setFilter(disp, blur) {
+    el.disp.setAttribute('scale', disp.toFixed(2));
+    el.blur.setAttribute('stdDeviation', blur.toFixed(2));
+  }
+
+  function buildVisitor(v) {
+    el.visitorBody.replaceChildren();
+    el.visitorFeatures.replaceChildren();
+    const fill = '#1d1d26', rim = '#8e8a98';
+
+    if (v.recurring) {
+      // La silhouette récurrente : une forme informe qui glisse vers le contour du protagoniste.
+      const rec = state.recurring.recognition;
+      const blob = genShape('fil');
+      const bg = svg('g', { fill, stroke: rim, 'stroke-width': 1.2, 'stroke-opacity': 0.25, opacity: 1 - rec }, el.visitorBody);
+      svg('ellipse', { cx: blob.head.cx, cy: blob.head.cy, rx: blob.head.rx, ry: blob.head.ry, transform: `rotate(${blob.head.rot} ${blob.head.cx} ${blob.head.cy})` }, bg);
+      svg('path', { d: blob.d }, bg);
+      drawArm(bg, `M ${blob.shoulder.x} ${blob.shoulder.y} Q ${blob.shoulder.x + 16} ${blob.shoulder.y + 18} 80 ${-HEAD_H + 88}`, 13).setAttribute('stroke', fill);
+
+      const self = svg('g', { transform: `translate(0 ${-HEAD_H}) scale(-1 1)`, opacity: rec }, el.visitorBody);
+      drawSelf(self, { fill, stroke: rim, 'stroke-width': 1.2, 'stroke-opacity': 0.6 * rec });
+      svg('path', { d: SELF.robe, fill }, self);
+      drawArm(self, SELF.arm).setAttribute('stroke', fill);
+
+      setFilter(42 * (1 - rec) + (rec >= 1 ? 0 : 2), 7 * (1 - rec) + 0.4);
+      vis.attached = true;
+    } else {
+      // Silhouette ordinaire : se précise à mesure que les promesses s'accumulent.
+      const clarity = clamp(0.06 + state.promiseCount / 10);
+      const s = genShape(v.id);
+      const g = svg('g', { fill, stroke: rim, 'stroke-width': 1.2, 'stroke-opacity': clarity * 0.7 }, el.visitorBody);
+      svg('ellipse', { cx: s.head.cx, cy: s.head.cy, rx: s.head.rx, ry: s.head.ry, transform: `rotate(${s.head.rot} ${s.head.cx} ${s.head.cy})` }, g);
+      svg('path', { d: s.d }, g);
+      const eyes = svg('g', { fill: '#d8cfbd', opacity: (clarity ** 1.6 * 0.75).toFixed(3) }, el.visitorFeatures);
+      const ey = s.head.cy - 2;
+      svg('circle', { cx: s.head.cx - 7, cy: ey, r: 1.8 }, eyes);
+      svg('circle', { cx: s.head.cx + 7, cy: ey, r: 1.8 }, eyes);
+      if (clarity > 0.5) {
+        svg('path', {
+          d: `M ${s.head.cx - 5} ${ey + 13} Q ${s.head.cx} ${ey + 15} ${s.head.cx + 5} ${ey + 13}`,
+          fill: 'none', stroke: '#d8cfbd', 'stroke-width': 1, opacity: ((clarity - 0.5) * 1.2).toFixed(3),
+        }, el.visitorFeatures);
+      }
+      setFilter(42 * (1 - clarity) + 2, 7 * (1 - clarity) + 0.6);
+      vis.attached = false;
+    }
+  }
+
+  async function enterVisitor() {
+    vis.x = -140; vis.o = 0; applyVisitor();
+    await tween(1800, (k) => { vis.x = -140 + (VISITOR_X + 140) * k; vis.o = k; applyVisitor(); });
+  }
+
+  async function leaveVisitor() {
+    const x0 = vis.x;
+    await tween(1600, (k) => { vis.x = x0 - (x0 + 160) * k; vis.o = 1 - k; applyVisitor(); });
+    vis.attached = false;
+    applyVisitor();
+  }
+
+  async function approachVisitor(to) {
+    const x0 = vis.x;
+    await tween(1400, (k) => { vis.x = x0 + (to - x0) * k; applyVisitor(); });
+  }
+
+  function setListenable(on) {
+    el.visitor.classList.toggle('listenable', on);
+    el.visitor.setAttribute('tabindex', on ? '0' : '-1');
+  }
+
+  function flashPresence() {
+    el.presence.style.transition = 'none';
+    el.presence.style.opacity = 1;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.presence.style.transition = '';
+      el.presence.style.opacity = 0;
+    }));
+  }
+
+  // ---------------------------------------------------------------- texte
+
+  let typing = null;
+  let continueResolver = null;
+
+  function clearLines() { el.lines.replaceChildren(); }
+
+  function say(text, cls) {
+    return new Promise((res) => {
+      const p = document.createElement('p');
+      p.className = cls;
+      el.lines.appendChild(p);
+      while (el.lines.children.length > 7) el.lines.firstElementChild.remove();
+      const done = () => {
+        clearInterval(timer);
+        p.textContent = text;
+        typing = null;
+        el.lines.scrollTop = el.lines.scrollHeight;
+        res();
+      };
+      let i = 0;
+      let timer = null;
+      if (reducedMotion) { done(); return; }
+      typing = { finish: done };
+      timer = setInterval(() => {
+        p.textContent = text.slice(0, ++i);
+        el.lines.scrollTop = el.lines.scrollHeight;
+        if (i >= text.length) done();
+      }, 24);
+    });
+  }
+
+  function waitContinue() {
+    el.cont.hidden = false;
+    return new Promise((res) => {
+      continueResolver = () => { continueResolver = null; el.cont.hidden = true; res(); };
+    });
+  }
+
+  // ---------------------------------------------------------------- menu
+
+  const buttons = {};
+  C.choices.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.choice = c.id;
+    b.innerHTML = `<span class="key">${i + 1}</span>`;
+    b.appendChild(document.createTextNode(c.label));
+    b.addEventListener('click', () => onChoice(c.id));
+    el.choices.appendChild(b);
+    buttons[c.id] = b;
+  });
+
+  function showChoices(on) {
+    el.choices.classList.toggle('hidden', !on);
+    if (on) enableChoices(true);
+  }
+
+  function enableChoices(on) {
+    for (const [id, b] of Object.entries(buttons)) {
+      b.disabled = !on || (cur && cur.jam.dead.has(id));
+    }
+  }
+
+  function resetButtons() {
+    for (const b of Object.values(buttons)) { b.classList.remove('dead', 'shake'); b.disabled = false; }
+  }
+
+  // ---------------------------------------------------------------- déroulé
+
+  let cur = null;   // contexte du tour en cours
+  let busy = false;
+
+  const isWaiting = () => !!cur && !cur.resolved && !busy && el.title.hidden && el.ending.hidden;
+
+  // La silhouette attend une réponse : menu, écoute, ou l'une des sorties hors menu.
+  function awaitDecision() {
+    busy = false;
+    showChoices(true);
+    setListenable(true);
+    armSilence();
+  }
+
+  // Silence : si rien ne se passe, le temps répond à ta place.
+  const silenceMs = Number(params.get('silence')) || C.silenceMs;
+  let silenceTimers = [];
+
+  function disarmSilence() {
+    silenceTimers.forEach(clearTimeout);
+    silenceTimers = [];
+  }
+
+  function armSilence() {
+    disarmSilence();
+    if (document.visibilityState === 'hidden') return;
+    silenceTimers.push(setTimeout(onSilenceCue, silenceMs * C.silenceCueAt));
+    silenceTimers.push(setTimeout(onSilence, silenceMs));
+  }
+
+  function onSilenceCue() {
+    if (!isWaiting() || cur.cued || typing) return;
+    cur.cued = true;
+    audio.play('hush');
+    say(C.ui.silenceCue, 'aside');
+  }
+
+  function onSilence() {
+    if (!isWaiting()) return;
+    if (typing) typing.finish();
+    if (cur.v.final) finalAvoid('silence'); else resolveAvoid('silence');
+  }
+
+  async function runTurn() {
+    const v = C.visitors[state.turn];
+    save();
+    cur = { v, heard: 0, resolved: false, jam: { fails: 0, dead: new Set() } };
+    busy = true;
+    clearLines();
+    resetButtons();
+    showChoices(false);
+    setListenable(false);
+
+    if (v.recurring) {
+      state.recurring.appearances = v.recurring;
+      state.recurring.recognition = v.final
+        ? 1
+        : clamp([0.08, 0.3][v.recurring - 1] + state.weight * 0.01 + state.promiseCount * 0.01, 0, 0.8);
+    }
+    render();
+    buildVisitor(v);
+    audio.play('arrive');
+    await enterVisitor();
+
+    if (state.owedYes && !v.final) await say(C.ui.owedReminder, 'aside');
+    await say(`« ${v.request} »`, 'visitor');
+    awaitDecision();
+  }
+
+  function fillText(s, v, family) {
+    return s.replace(/\{yes\}/g, v.yes || '').replace(/\{no\}/g, v.no || '').replace(/\{family\}/g, family || '');
+  }
+
+  // Seul l'indice du silence peut s'écrire pendant l'attente : on l'achève plutôt que d'ignorer le geste.
+  function settleCue() { if (typing && isWaiting()) typing.finish(); }
+
+  function onChoice(id) {
+    settleCue();
+    if (!cur || cur.resolved || busy || typing) return;
+    if (cur.v.final) jam(id); else resolveClassic(id);
+  }
+
+  // Les cinq réponses du menu : toutes ajoutent du poids, toutes créent une branche.
+  async function resolveClassic(id) {
+    const v = cur.v;
+    cur.resolved = true;
+    busy = true;
+    disarmSilence();
+    showChoices(false);
+    setListenable(false);
+
+    let family = null;
+    if (id === 'delegate') family = C.family[state.familyIndex++ % C.family.length];
+    const reply = C.replies[id];
+    await say(`— ${fillText(reply.say, v, family)}`, 'self');
+
+    state.weight += C.weights[id];
+    state.promiseCount++;
+    state.history.push({ visitor: v.id, choice: id });
+
+    let owedMsg = null;
+    if (state.owedYes) {
+      state.owedYes = false;
+      if (id === 'promise') owedMsg = C.ui.owedKept;
+      else {
+        state.weight += C.owedBroken;
+        owedMsg = C.ui.owedBroken;
+        addBranch('broken', v.id);
+      }
+    }
+
+    if (id === 'double') {
+      addBranch('refuse', v.id);
+      addBranch('future', v.id);
+      state.owedYes = true;
+    } else {
+      addBranch(id, v.id);
+    }
+    if (id === 'think') state.suspended++;
+
+    render();
+    if (owedMsg) await say(owedMsg, 'aside');
+    await say(fillText(reply.out, v, family), 'outcome');
+    await leaveVisitor();
+    await waitContinue();
+    advance();
+  }
+
+  // « Rester et écouter » : cliquer sur la silhouette plutôt que sur le menu.
+  async function onListen() {
+    settleCue();
+    if (!cur || cur.resolved || busy || typing) return;
+    const v = cur.v;
+    busy = true;
+    disarmSilence();
+    enableChoices(false);
+    el.visitor.classList.remove('leaning');
+    void el.visitor.getBBox();
+    el.visitor.classList.add('leaning');
+    audio.play('listen');
+
+    const line = v.listen[cur.heard++];
+    await say(line === '…' ? '…' : `« ${line} »`, 'listen');
+
+    if (cur.heard >= v.listen.length) {
+      if (v.final) resolveFinal(); else resolvePresence();
+      return;
+    }
+    awaitDecision();
+  }
+
+  async function resolvePresence() {
+    const v = cur.v;
+    cur.resolved = true;
+    showChoices(false);
+    setListenable(false);
+    state.listenCount++;
+    state.weight = Math.max(0, state.weight - C.listenRelief);
+    state.history.push({ visitor: v.id, choice: 'listen' });
+    flashPresence();
+    audio.play('presence');
+    render();
+    await wait(600);
+    await say(C.ui.listenEnd, 'outcome');
+    await leaveVisitor();
+    await waitContinue();
+    advance();
+  }
+
+  // Dernière apparition : le menu se grippe.
+  async function jam(id) {
+    const v = cur.v;
+    const btn = buttons[id];
+    busy = true;
+    disarmSilence();
+    enableChoices(false);
+    btn.classList.remove('shake');
+    void btn.offsetWidth;
+    btn.classList.add('shake');
+    cur.jam.fails++;
+    audio.play(id === 'refuse' ? 'loop' : 'jam');
+
+    if (id === 'refuse') {
+      await say(`— ${C.final.refuseSay}`, 'self');
+      await wait(400);
+      await say(`« ${v.request} »`, 'visitor');
+    } else {
+      await say(C.final.jam[id], 'aside');
+      cur.jam.dead.add(id);
+      btn.classList.add('dead');
+    }
+
+    if (cur.jam.fails >= 2 && vis.x < 470) await approachVisitor(Math.min(470, vis.x + 60));
+    awaitDecision();
+  }
+
+  // ---------------------------------------------------------------- sorties par évitement
+
+  // Silence, fuite, regard détourné : aucune branche, un poids léger, une marque creuse.
+  async function resolveAvoid(kind) {
+    const v = cur.v;
+    const A = C.avoid[kind];
+    cur.resolved = true;
+    busy = true;
+    disarmSilence();
+    showChoices(false);
+    setListenable(false);
+    state.avoidCount++;
+    state.avoidMarks.push({ kind });
+    state.weight += C.avoidWeights[kind];
+    state.history.push({ visitor: v.id, choice: kind });
+
+    if (kind === 'silence') {
+      await say(A.say, 'aside');
+      render();
+      await say(A.out, 'outcome');
+      await leaveVisitor();
+    } else if (kind === 'flee') {
+      audio.play('steps', 1);
+      await tween(900, (k) => { prot.dy = -16 * k; applyProtag(); });
+      await tween(2200, (k) => { prot.dx = 320 * k; prot.o = 1 - k; applyProtag(); });
+      render();
+      await say(A.out, 'outcome');
+      await wait(800);
+      await tween(2200, (k) => { vis.o = 1 - k; applyVisitor(); });
+      vis.attached = false;
+      applyVisitor();
+      await wait(600);
+      audio.play('steps', 1);
+      await tween(2200, (k) => { prot.dx = 320 * (1 - k); prot.o = k; applyProtag(); });
+      await tween(900, (k) => { prot.dy = -16 * (1 - k); applyProtag(); });
+      await say(A.back, 'outcome');
+    } else {
+      // La silhouette a disparu pendant que tu ne regardais pas.
+      vis.o = 0;
+      vis.attached = false;
+      applyVisitor();
+      render();
+      audio.play('whoosh');
+      await wait(700);
+      await say(A.out, 'outcome');
+    }
+    await waitContinue();
+    advance();
+  }
+
+  // Dernière apparition : aucune sortie ne fonctionne, sauf rester.
+  async function finalAvoid(kind) {
+    busy = true;
+    disarmSilence();
+    enableChoices(false);
+    cur.jam.fails++;
+    audio.play('jam');
+    if (kind === 'flee') await tween(700, (k) => { prot.dy = -14 * k; applyProtag(); });
+    if (kind === 'deny') { vis.o = 1; applyVisitor(); }
+    await say(C.final[kind], 'aside');
+    if (kind === 'flee') await tween(700, (k) => { prot.dy = -14 * (1 - k); applyProtag(); });
+    if (kind !== 'flee' && vis.x < 470) await approachVisitor(Math.min(470, vis.x + 60));
+    awaitDecision();
+  }
+
+  // Fuite : quitter le trône (cliquer sur le trône ou sur soi, ou Échap).
+  function onFlee() {
+    settleCue();
+    if (!isWaiting() || typing) return;
+    if (cur.v.final) finalAvoid('flee'); else resolveAvoid('flee');
+  }
+
+  // Regard détourné : l'action a lieu hors de l'écran, quand la page n'est plus visible.
+  let hiddenAt = null;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      if (!isWaiting()) return;
+      if (typing) typing.finish();
+      hiddenAt = Date.now();
+      disarmSilence();
+      if (!cur.v.final) { vis.o = 0; applyVisitor(); }
+      return;
+    }
+    if (hiddenAt === null) return;
+    const away = Date.now() - hiddenAt;
+    hiddenAt = null;
+    if (!isWaiting()) return;
+    if (away < C.denyMinMs) { vis.o = 1; applyVisitor(); armSilence(); return; }
+    if (cur.v.final) finalAvoid('deny'); else resolveAvoid('deny');
+  });
+
+  async function resolveFinal() {
+    const v = cur.v;
+    cur.resolved = true;
+    showChoices(false);
+    setListenable(false);
+    state.history.push({ visitor: v.id, choice: 'listen' });
+    state.recurring.released = true;
+    state.weight = Math.max(0, state.weight - C.inheritedWeight);
+    await wait(900);
+    el.thread.style.opacity = 0;
+    el.knot.style.opacity = 0;
+    audio.play('release');
+    flashPresence();
+    render();
+    await say(C.final.release, 'outcome');
+    await wait(1500);
+    await tween(2600, (k) => { vis.o = 1 - k; applyVisitor(); });
+    await waitContinue();
+    finishGame();
+  }
+
+  function advance() {
+    state.weight += state.suspended * C.suspendedDrift; // les « j'y réfléchis » continuent de peser
+    state.turn++;
+    busy = false;
+    if (state.turn >= C.visitors.length) finishGame(); else runTurn();
+  }
+
+  function computeEnding() {
+    const s = state;
+    if (s.avoidCount >= C.avoidThreshold && s.avoidCount > s.listenCount && s.avoidCount >= s.promiseCount) return 'void';
+    if (state.listenCount >= C.freeListenThreshold) return 'free';
+    return 'weight';
+  }
+
+  function finishGame() {
+    disarmSilence();
+    const ending = computeEnding();
+    audio.play('ending', ending);
+    meta.runs.push({ ending, branches: state.branches.length, weight: Math.round(state.weight * 10) / 10 });
+    store.set(META_KEY, meta);
+    store.del(SAVE_KEY);
+    renderRunMarks();
+    renderDebug();
+    clearLines();
+
+    const E = C.endings[ending];
+    $('#ending-title').textContent = E.title;
+    const box = $('#ending-text');
+    box.replaceChildren();
+    E.text.forEach((t, i) => {
+      const p = document.createElement('p');
+      p.textContent = t.replace(/\{branches\}/g, state.branches.length);
+      p.style.animationDelay = `${0.8 + i * 1.6}s`;
+      box.appendChild(p);
+    });
+    el.ending.hidden = false;
+    el.ending.classList.remove('fading');
+    el.ending.dataset.ending = ending;
+  }
+
+  // ---------------------------------------------------------------- mise en place
+
+  function resetScene() {
+    el.branches.replaceChildren();
+    state.branches.forEach((b) => drawBranch(b, false));
+    el.thread.style.opacity = '';
+    el.knot.style.opacity = '';
+    vis.x = -140; vis.o = 0; vis.attached = false;
+    prot.dx = 0; prot.dy = 0; prot.o = 1;
+    applyVisitor();
+    applyProtag();
+    clearLines();
+    showChoices(false);
+    renderRunMarks();
+    render({ instant: true });
+  }
+
+  async function begin(resume) {
+    disarmSilence();
+    audio.start();
+    audio.reset();
+    const saved = store.get(SAVE_KEY);
+    state = resume && saved ? Object.assign(newState(), saved) : newState();
+    resetScene();
+    el.title.classList.add('fading');
+    el.ending.classList.add('fading');
+    await wait(1400);
+    el.title.hidden = true;
+    el.ending.hidden = true;
+    runTurn();
+  }
+
+  const soundBtn = $('#btn-sound');
+  const soundLabel = () => {
+    soundBtn.textContent = audio.muted ? 'son coupé' : 'son';
+    soundBtn.setAttribute('aria-pressed', String(!audio.muted));
+  };
+  soundBtn.addEventListener('click', () => { audio.start(); audio.setMuted(!audio.muted); soundLabel(); });
+  soundLabel();
+
+  $('#btn-start').addEventListener('click', () => begin(false));
+  $('#btn-resume').addEventListener('click', () => begin(true));
+  $('#btn-again').addEventListener('click', () => begin(false));
+  el.cont.addEventListener('click', (e) => { e.stopPropagation(); if (continueResolver) continueResolver(); });
+
+  el.visitor.addEventListener('click', onListen);
+  for (const sel of ['#protagonist', '#throne', '#throne-front']) $(sel).addEventListener('click', onFlee);
+  el.visitor.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onListen(); }
+  });
+
+  el.panel.addEventListener('click', (e) => {
+    if (e.target.closest('button')) return;
+    if (typing) typing.finish();
+    else if (continueResolver) continueResolver();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!el.title.hidden || !el.ending.hidden) return;
+    if (e.key === 'Escape') { onFlee(); return; }
+    const onControl = e.target.closest && (e.target.closest('button') || e.target === el.visitor);
+    if (e.key === ' ' || e.key === 'Enter') {
+      if (onControl) return;
+      e.preventDefault();
+      if (typing) typing.finish();
+      else if (continueResolver) continueResolver();
+      return;
+    }
+    const idx = Number(e.key) - 1;
+    if (idx >= 0 && idx < C.choices.length && !el.choices.classList.contains('hidden')) {
+      const b = buttons[C.choices[idx].id];
+      if (!b.disabled) onChoice(C.choices[idx].id);
+    }
+  });
+
+  // En portrait, on resserre le cadre sur la silhouette et le trône.
+  function fitScene() {
+    const r = el.scene.getBoundingClientRect();
+    const portrait = r.width / Math.max(1, r.height) < 1.2;
+    el.scene.setAttribute('viewBox', portrait ? '200 60 720 540' : '0 0 1000 620');
+  }
+  window.addEventListener('resize', fitScene);
+  fitScene();
+
+  // État d'ouverture : le poids hérité est déjà visible derrière l'écran titre.
+  if (store.get(SAVE_KEY)) $('#btn-resume').hidden = false;
+  resetScene();
+
+  // Accès pour les tests automatisés.
+  window.MNP = { get state() { return state; }, get meta() { return meta; } };
+})();
+</script>
+  <script>
+    // Si le jeu n'a pas démarré (fichier manquant, erreur), on le dit au lieu de laisser un bouton muet.
+    if (!window.MNP) document.getElementById('load-error').hidden = false;
+  </script>
 </body>
 </html>

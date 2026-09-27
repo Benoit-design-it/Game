@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Make No Promises</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="game">
+    <svg id="scene" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid meet" aria-hidden="false">
+      <defs>
+        <linearGradient id="g-sky" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="620">
+          <stop offset="0" stop-color="#050507"/>
+          <stop offset="0.8" stop-color="#0d0d12"/>
+        </linearGradient>
+        <linearGradient id="g-floor" gradientUnits="userSpaceOnUse" x1="0" y1="500" x2="0" y2="620">
+          <stop offset="0" stop-color="#131219"/>
+          <stop offset="1" stop-color="#060608"/>
+        </linearGradient>
+        <linearGradient id="g-stone" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#26242c"/>
+          <stop offset="0.5" stop-color="#34313a"/>
+          <stop offset="1" stop-color="#1c1b21"/>
+        </linearGradient>
+        <radialGradient id="g-halo" gradientUnits="userSpaceOnUse" cx="760" cy="280" r="520">
+          <stop offset="0" stop-color="#3a3444" stop-opacity="0.55"/>
+          <stop offset="1" stop-color="#000" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="g-vignette" gradientUnits="userSpaceOnUse" cx="500" cy="300" r="720">
+          <stop offset="0.45" stop-color="#000" stop-opacity="0"/>
+          <stop offset="1" stop-color="#000" stop-opacity="1"/>
+        </radialGradient>
+        <radialGradient id="g-presence" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stop-color="#f4ead2" stop-opacity="0.35"/>
+          <stop offset="1" stop-color="#f4ead2" stop-opacity="0"/>
+        </radialGradient>
+
+        <!-- Silhouettes informes : bruit + déplacement + flou, atténués selon le poids. -->
+        <filter id="f-visitor" x="-40%" y="-20%" width="180%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.016" numOctaves="2" seed="4" result="noise">
+            <animate attributeName="baseFrequency" dur="11s" values="0.016;0.022;0.016" repeatCount="indefinite"/>
+          </feTurbulence>
+          <feDisplacementMap id="f-visitor-disp" in="SourceGraphic" in2="noise" scale="40" xChannelSelector="R" yChannelSelector="G" result="warped"/>
+          <feGaussianBlur id="f-visitor-blur" in="warped" stdDeviation="8"/>
+        </filter>
+        <filter id="f-soft" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="1.4"/>
+        </filter>
+        <filter id="f-ember" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2.5"/>
+        </filter>
+        <filter id="f-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <rect x="-1500" y="-200" width="4000" height="1020" fill="url(#g-sky)"/>
+      <rect x="-1500" y="-200" width="4000" height="1020" fill="url(#g-halo)"/>
+
+      <!-- Vérités potentielles : une branche par promesse. -->
+      <g id="branches"></g>
+
+      <!-- Sol et marches -->
+      <rect x="-1500" y="500" width="4000" height="320" fill="url(#g-floor)"/>
+      <rect x="610" y="514" width="300" height="14" fill="#1b1a20"/>
+      <rect x="630" y="500" width="260" height="14" fill="#232128"/>
+
+      <!-- Trône -->
+      <g id="throne">
+        <path d="M 690 470 L 690 190 Q 690 150 720 130 L 760 92 L 800 130 Q 830 150 830 190 L 830 470 Z" fill="url(#g-stone)"/>
+        <path d="M 705 400 L 705 200 Q 705 168 730 152 L 760 122 L 790 152 Q 815 168 815 200 L 815 400 Z" fill="#1a1920"/>
+        <g id="cracks-back" class="cracks"></g>
+      </g>
+
+      <!-- Le protagoniste, assis. Sa silhouette sert aussi de modèle à la silhouette récurrente. -->
+      <g id="protagonist" transform="translate(748 268)">
+        <g id="protagonist-shape"></g>
+      </g>
+
+      <g id="throne-front">
+        <rect x="670" y="400" width="180" height="34" rx="3" fill="#2d2b33"/>
+        <path d="M 675 434 L 845 434 L 855 500 L 665 500 Z" fill="#232128"/>
+        <path id="robe" d="M 712 404 L 808 404 L 802 496 L 718 496 Z" fill="#101015"/>
+        <rect x="648" y="350" width="52" height="16" rx="4" fill="#3a3740"/>
+        <rect x="654" y="366" width="14" height="68" fill="#2a2830"/>
+        <rect x="820" y="350" width="52" height="16" rx="4" fill="#3a3740"/>
+        <rect x="852" y="366" width="14" height="68" fill="#2a2830"/>
+        <g id="protagonist-arm"></g>
+        <g id="cracks-front" class="cracks"></g>
+        <g id="chains"></g>
+        <g id="run-marks"></g>
+        <g id="avoid-marks"></g>
+      </g>
+      <g id="dust"></g>
+
+      <!-- Le fil de promesse non refermée, visible dès l'ouverture. -->
+      <path id="thread" d="" fill="none" stroke="#c9b27f" stroke-width="1.6" stroke-linecap="round" opacity="0.85"/>
+      <circle id="knot" cx="668" cy="356" r="4.5" fill="#c9b27f"/>
+
+      <!-- La silhouette qui demande. -->
+      <g id="visitor" tabindex="-1" aria-label="Silhouette" opacity="0">
+        <g id="visitor-body" filter="url(#f-visitor)"></g>
+        <g id="visitor-features"></g>
+      </g>
+
+      <circle id="presence" cx="760" cy="300" r="260" fill="url(#g-presence)" opacity="0" pointer-events="none"/>
+      <rect id="vignette" x="-1500" y="-200" width="4000" height="1020" fill="url(#g-vignette)" opacity="0.6" pointer-events="none"/>
+    </svg>
+
+    <section id="panel" aria-live="polite">
+      <div id="lines"></div>
+      <div id="choices" role="group" aria-label="Réponses"></div>
+      <button id="continue" type="button" aria-label="Continuer" hidden>…</button>
+    </section>
+
+    <div id="title-screen" class="overlay">
+      <h1>Make No Promises</h1>
+      <p class="hint">Avec le son, de préférence.</p>
+      <div class="overlay-actions">
+        <button id="btn-resume" type="button" hidden>Reprendre</button>
+        <button id="btn-start" type="button">S'asseoir</button>
+      </div>
+      <p id="load-error" class="load-error" hidden>Le jeu n'a pas pu se charger. Si tu as ouvert <code>src/index.html</code>, les fichiers <code>content.js</code>, <code>audio.js</code>, <code>game.js</code> et <code>style.css</code> doivent être dans le même dossier. Le plus simple : ouvrir le fichier autonome <code>index.html</code> à la racine du projet.</p>
+      <noscript><p class="load-error">Ce jeu a besoin de JavaScript.</p></noscript>
+    </div>
+
+    <div id="ending-screen" class="overlay" hidden>
+      <h2 id="ending-title"></h2>
+      <div id="ending-text"></div>
+      <div class="overlay-actions">
+        <button id="btn-again" type="button">Se rasseoir</button>
+      </div>
+    </div>
+
+    <button id="btn-sound" type="button" aria-pressed="true">son</button>
+    <pre id="debug" hidden></pre>
+  </main>
+
+  <script src="content.js"></script>
+  <script src="audio.js"></script>
+  <script src="game.js"></script>
+  <script>
+    // Si le jeu n'a pas démarré (fichier manquant, erreur), on le dit au lieu de laisser un bouton muet.
+    if (!window.MNP) document.getElementById('load-error').hidden = false;
+  </script>
+</body>
+</html>
