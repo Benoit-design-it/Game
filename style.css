@@ -29,6 +29,7 @@ html, body {
 }
 
 #scene {
+  transition: filter 3s ease;
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
@@ -61,11 +62,12 @@ html, body {
 
 #branches path { fill: none; transition: opacity 3s ease, stroke-dashoffset 3.5s ease; }
 #branches circle { transition: opacity 3s ease; }
+#avoid-marks > g { animation: fade-in 3s ease both; }
+@keyframes fade-in { from { opacity: 0; } }
 
 #thread { transition: opacity 3s ease; }
 #knot { transition: opacity 3s ease, r 1.5s ease; }
 #vignette { transition: opacity 3s ease; }
-#protagonist { transition: transform 3s ease; }
 #presence { transition: opacity 2.5s ease; }
 
 /* --- Panneau de dialogue --- */

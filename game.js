@@ -147,6 +147,8 @@
     avoidMarks: $('#avoid-marks'),
     thread: $('#thread'),
     knot: $('#knot'),
+    protagonist: $('#protagonist'),
+    robe: $('#robe'),
     visitor: $('#visitor'),
     visitorBody: $('#visitor-body'),
     visitorFeatures: $('#visitor-features'),
@@ -299,6 +301,9 @@
     for (const c of CRACKS) c.node.style.strokeDashoffset = 1 - clamp((w - c.th) / 4);
     for (const ch of CHAINS) ch.node.style.opacity = w >= ch.th ? 1 : 0;
     el.vignette.style.opacity = (0.42 + clamp(w / 30) * 0.5).toFixed(3);
+    // L'évitement ne fissure pas : il ternit.
+    const dull = clamp(state.avoidCount / 6);
+    el.scene.style.filter = dull ? `saturate(${(1 - dull * 0.75).toFixed(3)}) brightness(${(1 - dull * 0.2).toFixed(3)})` : '';
     renderAvoidMarks();
     renderDebug();
   }
@@ -318,16 +323,27 @@
     });
   }
 
-  // Marques d'évitement (v2) : ternes, creuses, différentes des promesses.
+  // Marques d'évitement : ternes, creuses, différentes des promesses.
+  // Silence : cercle en pointillés. Fuite : empreintes vides. Regard détourné : paupière close.
   function renderAvoidMarks() {
-    el.avoidMarks.replaceChildren();
-    state.avoidMarks.forEach((m, i) => {
+    if (el.avoidMarks.childElementCount > state.avoidMarks.length) el.avoidMarks.replaceChildren();
+    const ink = { fill: 'none', stroke: '#4d4d52', 'stroke-width': 1 };
+    for (let i = el.avoidMarks.childElementCount; i < state.avoidMarks.length; i++) {
       const r = rng(`avoid:${i}`);
-      svg('circle', {
-        cx: 640 + r() * 240, cy: 525 + r() * 60, r: 6 + r() * 5,
-        fill: 'none', stroke: '#4d4d52', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: 0.7,
-      }, el.avoidMarks);
-    });
+      const g = svg('g', { opacity: 0.75 }, el.avoidMarks);
+      const kind = state.avoidMarks[i].kind;
+      if (kind === 'flee') {
+        const x = 880 + r() * 90, y = 530 + r() * 60;
+        svg('ellipse', { ...ink, cx: x, cy: y, rx: 5, ry: 2.6 }, g);
+        svg('ellipse', { ...ink, cx: x + 14, cy: y + 6, rx: 5, ry: 2.6 }, g);
+      } else if (kind === 'deny') {
+        const x = 560 + r() * 300, y = 530 + r() * 60;
+        svg('path', { ...ink, d: `M ${x - 9} ${y} Q ${x} ${y + 6} ${x + 9} ${y}` }, g);
+        for (const dx of [-5, 0, 5]) svg('path', { ...ink, d: `M ${x + dx} ${y + 3.5} l ${dx * 0.3} 4` }, g);
+      } else {
+        svg('circle', { ...ink, cx: 600 + r() * 280, cy: 525 + r() * 60, r: 6 + r() * 5, 'stroke-dasharray': '3 3' }, g);
+      }
+    }
   }
 
   function renderDebug() {
@@ -339,6 +355,7 @@
       `poids        ${s.weight.toFixed(2)}`,
       `promesses    ${s.promiseCount}`,
       `écoutes      ${s.listenCount}`,
+      `évitements   ${s.avoidCount} (${s.avoidMarks.map((m) => m.kind).join(', ')})`,
       `en suspens   ${s.suspended}`,
       `oui dû       ${s.owedYes}`,
       `branches     ${s.branches.length}`,
@@ -350,9 +367,21 @@
   // ---------------------------------------------------------------- silhouette
 
   const vis = { x: -140, o: 0, attached: false };
+  const prot = { dx: 0, dy: 0, o: 1 };
+
+  function applyProtag() {
+    const t = `translate(${PROTAG.x + prot.dx} ${PROTAG.y + prot.dy})`;
+    el.protagonist.setAttribute('transform', t);
+    protagArmG.setAttribute('transform', t);
+    el.robe.setAttribute('transform', `translate(${prot.dx} ${prot.dy})`);
+    for (const n of [el.protagonist, protagArmG, el.robe]) n.setAttribute('opacity', prot.o.toFixed(3));
+    el.knot.setAttribute('cx', HAND.x + prot.dx);
+    el.knot.setAttribute('cy', HAND.y + prot.dy);
+    el.thread.setAttribute('d', threadPath());
+  }
 
   function threadPath() {
-    const hx = HAND.x, hy = HAND.y;
+    const hx = HAND.x + prot.dx, hy = HAND.y + prot.dy;
     if (vis.attached) {
       const vx = vis.x + 80, vy = FEET_Y - HEAD_H + 88;
       const mx = (hx + vx) / 2;
@@ -519,6 +548,44 @@
   let cur = null;   // contexte du tour en cours
   let busy = false;
 
+  const isWaiting = () => !!cur && !cur.resolved && !busy && el.title.hidden && el.ending.hidden;
+
+  // La silhouette attend une réponse : menu, écoute, ou l'une des sorties hors menu.
+  function awaitDecision() {
+    busy = false;
+    showChoices(true);
+    setListenable(true);
+    armSilence();
+  }
+
+  // Silence : si rien ne se passe, le temps répond à ta place.
+  const silenceMs = Number(params.get('silence')) || C.silenceMs;
+  let silenceTimers = [];
+
+  function disarmSilence() {
+    silenceTimers.forEach(clearTimeout);
+    silenceTimers = [];
+  }
+
+  function armSilence() {
+    disarmSilence();
+    if (document.visibilityState === 'hidden') return;
+    silenceTimers.push(setTimeout(onSilenceCue, silenceMs * C.silenceCueAt));
+    silenceTimers.push(setTimeout(onSilence, silenceMs));
+  }
+
+  function onSilenceCue() {
+    if (!isWaiting() || cur.cued || typing) return;
+    cur.cued = true;
+    say(C.ui.silenceCue, 'aside');
+  }
+
+  function onSilence() {
+    if (!isWaiting()) return;
+    if (typing) typing.finish();
+    if (cur.v.final) finalAvoid('silence'); else resolveAvoid('silence');
+  }
+
   async function runTurn() {
     const v = C.visitors[state.turn];
     save();
@@ -541,16 +608,18 @@
 
     if (state.owedYes && !v.final) await say(C.ui.owedReminder, 'aside');
     await say(`« ${v.request} »`, 'visitor');
-    busy = false;
-    showChoices(true);
-    setListenable(true);
+    awaitDecision();
   }
 
   function fillText(s, v, family) {
     return s.replace(/\{yes\}/g, v.yes || '').replace(/\{no\}/g, v.no || '').replace(/\{family\}/g, family || '');
   }
 
+  // Seul l'indice du silence peut s'écrire pendant l'attente : on l'achève plutôt que d'ignorer le geste.
+  function settleCue() { if (typing && isWaiting()) typing.finish(); }
+
   function onChoice(id) {
+    settleCue();
     if (!cur || cur.resolved || busy || typing) return;
     if (cur.v.final) jam(id); else resolveClassic(id);
   }
@@ -560,6 +629,7 @@
     const v = cur.v;
     cur.resolved = true;
     busy = true;
+    disarmSilence();
     showChoices(false);
     setListenable(false);
 
@@ -602,9 +672,11 @@
 
   // « Rester et écouter » : cliquer sur la silhouette plutôt que sur le menu.
   async function onListen() {
+    settleCue();
     if (!cur || cur.resolved || busy || typing) return;
     const v = cur.v;
     busy = true;
+    disarmSilence();
     enableChoices(false);
     el.visitor.classList.remove('leaning');
     void el.visitor.getBBox();
@@ -617,8 +689,7 @@
       if (v.final) resolveFinal(); else resolvePresence();
       return;
     }
-    busy = false;
-    enableChoices(true);
+    awaitDecision();
   }
 
   async function resolvePresence() {
@@ -643,6 +714,7 @@
     const v = cur.v;
     const btn = buttons[id];
     busy = true;
+    disarmSilence();
     enableChoices(false);
     btn.classList.remove('shake');
     void btn.offsetWidth;
@@ -660,9 +732,95 @@
     }
 
     if (cur.jam.fails >= 2 && vis.x < 470) await approachVisitor(Math.min(470, vis.x + 60));
-    busy = false;
-    enableChoices(true);
+    awaitDecision();
   }
+
+  // ---------------------------------------------------------------- sorties par évitement
+
+  // Silence, fuite, regard détourné : aucune branche, un poids léger, une marque creuse.
+  async function resolveAvoid(kind) {
+    const v = cur.v;
+    const A = C.avoid[kind];
+    cur.resolved = true;
+    busy = true;
+    disarmSilence();
+    showChoices(false);
+    setListenable(false);
+    state.avoidCount++;
+    state.avoidMarks.push({ kind });
+    state.weight += C.avoidWeights[kind];
+    state.history.push({ visitor: v.id, choice: kind });
+
+    if (kind === 'silence') {
+      await say(A.say, 'aside');
+      render();
+      await say(A.out, 'outcome');
+      await leaveVisitor();
+    } else if (kind === 'flee') {
+      await tween(900, (k) => { prot.dy = -16 * k; applyProtag(); });
+      await tween(2200, (k) => { prot.dx = 320 * k; prot.o = 1 - k; applyProtag(); });
+      render();
+      await say(A.out, 'outcome');
+      await wait(800);
+      await tween(2200, (k) => { vis.o = 1 - k; applyVisitor(); });
+      vis.attached = false;
+      applyVisitor();
+      await wait(600);
+      await tween(2200, (k) => { prot.dx = 320 * (1 - k); prot.o = k; applyProtag(); });
+      await tween(900, (k) => { prot.dy = -16 * (1 - k); applyProtag(); });
+      await say(A.back, 'outcome');
+    } else {
+      // La silhouette a disparu pendant que tu ne regardais pas.
+      vis.o = 0;
+      vis.attached = false;
+      applyVisitor();
+      render();
+      await wait(700);
+      await say(A.out, 'outcome');
+    }
+    await waitContinue();
+    advance();
+  }
+
+  // Dernière apparition : aucune sortie ne fonctionne, sauf rester.
+  async function finalAvoid(kind) {
+    busy = true;
+    disarmSilence();
+    enableChoices(false);
+    cur.jam.fails++;
+    if (kind === 'flee') await tween(700, (k) => { prot.dy = -14 * k; applyProtag(); });
+    if (kind === 'deny') { vis.o = 1; applyVisitor(); }
+    await say(C.final[kind], 'aside');
+    if (kind === 'flee') await tween(700, (k) => { prot.dy = -14 * (1 - k); applyProtag(); });
+    if (kind !== 'flee' && vis.x < 470) await approachVisitor(Math.min(470, vis.x + 60));
+    awaitDecision();
+  }
+
+  // Fuite : quitter le trône (cliquer sur le trône ou sur soi, ou Échap).
+  function onFlee() {
+    settleCue();
+    if (!isWaiting() || typing) return;
+    if (cur.v.final) finalAvoid('flee'); else resolveAvoid('flee');
+  }
+
+  // Regard détourné : l'action a lieu hors de l'écran, quand la page n'est plus visible.
+  let hiddenAt = null;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      if (!isWaiting()) return;
+      if (typing) typing.finish();
+      hiddenAt = Date.now();
+      disarmSilence();
+      if (!cur.v.final) { vis.o = 0; applyVisitor(); }
+      return;
+    }
+    if (hiddenAt === null) return;
+    const away = Date.now() - hiddenAt;
+    hiddenAt = null;
+    if (!isWaiting()) return;
+    if (away < C.denyMinMs) { vis.o = 1; applyVisitor(); armSilence(); return; }
+    if (cur.v.final) finalAvoid('deny'); else resolveAvoid('deny');
+  });
 
   async function resolveFinal() {
     const v = cur.v;
@@ -692,12 +850,14 @@
   }
 
   function computeEnding() {
-    if (state.avoidCount >= C.avoidThreshold && state.avoidCount > state.listenCount) return 'void';
+    const s = state;
+    if (s.avoidCount >= C.avoidThreshold && s.avoidCount > s.listenCount && s.avoidCount >= s.promiseCount) return 'void';
     if (state.listenCount >= C.freeListenThreshold) return 'free';
     return 'weight';
   }
 
   function finishGame() {
+    disarmSilence();
     const ending = computeEnding();
     meta.runs.push({ ending, branches: state.branches.length, weight: Math.round(state.weight * 10) / 10 });
     store.set(META_KEY, meta);
@@ -729,7 +889,9 @@
     el.thread.style.opacity = '';
     el.knot.style.opacity = '';
     vis.x = -140; vis.o = 0; vis.attached = false;
+    prot.dx = 0; prot.dy = 0; prot.o = 1;
     applyVisitor();
+    applyProtag();
     clearLines();
     showChoices(false);
     renderRunMarks();
@@ -737,6 +899,7 @@
   }
 
   async function begin(resume) {
+    disarmSilence();
     const saved = store.get(SAVE_KEY);
     state = resume && saved ? Object.assign(newState(), saved) : newState();
     resetScene();
@@ -754,6 +917,7 @@
   el.cont.addEventListener('click', (e) => { e.stopPropagation(); if (continueResolver) continueResolver(); });
 
   el.visitor.addEventListener('click', onListen);
+  for (const sel of ['#protagonist', '#throne', '#throne-front']) $(sel).addEventListener('click', onFlee);
   el.visitor.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onListen(); }
   });
@@ -766,6 +930,7 @@
 
   document.addEventListener('keydown', (e) => {
     if (!el.title.hidden || !el.ending.hidden) return;
+    if (e.key === 'Escape') { onFlee(); return; }
     const onControl = e.target.closest && (e.target.closest('button') || e.target === el.visitor);
     if (e.key === ' ' || e.key === 'Enter') {
       if (onControl) return;

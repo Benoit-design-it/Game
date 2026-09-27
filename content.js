@@ -17,7 +17,13 @@ window.MNP_CONTENT = {
   owedBroken: 2,         // poids d'un « oui promis » non tenu
   listenRelief: 1.5,     // allègement quand on reste écouter jusqu'au bout
   freeListenThreshold: 4, // écoutes nécessaires (hors rencontre finale) pour la fin de libération
-  avoidThreshold: 3,     // pour la v2 : évitements nécessaires pour la fin « vide »
+  avoidThreshold: 3,     // évitements nécessaires pour la fin « vide »
+
+  // Sorties par évitement : pas de branche, un poids léger, une marque terne.
+  avoidWeights: { silence: 0.5, flee: 0.5, deny: 0.5 },
+  silenceMs: 30000,      // délai avant que le silence ne réponde à ta place
+  silenceCueAt: 0.6,     // part du délai après laquelle la silhouette « attend »
+  denyMinMs: 1200,       // durée minimale hors de la page pour que le regard soit détourné
 
   // Les cinq réponses du menu. Toutes sont des promesses.
   choices: [
@@ -58,6 +64,22 @@ window.MNP_CONTENT = {
     owedKept: 'Tu tiens parole. Elle pèse quand même.',
     owedBroken: 'Tu avais promis d\'accepter. La promesse d\'avant se fend sur celle-ci.',
     listenEnd: 'La silhouette se tait. Elle s\'en va sans rien emporter.',
+    silenceCue: 'La silhouette attend.',
+  },
+
+  // Sorties hors menu autres que l'écoute. Aucune n'est nommée comme telle dans le jeu.
+  avoid: {
+    silence: {
+      say: 'Tu ne dis rien.',
+      out: 'La silhouette attend encore un peu, puis s\'en va. Elle ne saura jamais si tu l\'as entendue.',
+    },
+    flee: {
+      out: 'Tu te lèves et tu pars sans un mot. Derrière toi, la silhouette reste seule devant un trône vide.',
+      back: 'Quand tu reviens, il n\'y a plus personne. Le trône, lui, n\'a pas bougé.',
+    },
+    deny: {
+      out: 'Quand tu regardes à nouveau, il n\'y a plus personne. Tu ne sauras pas comment elle est partie.',
+    },
   },
 
   // Rencontre finale avec la silhouette récurrente : le menu se grippe.
@@ -69,6 +91,9 @@ window.MNP_CONTENT = {
       double: 'La prochaine demande, c\'est celle-ci. Ça a toujours été celle-ci.',
     },
     refuseSay: 'Non.',
+    silence: 'Le silence dure. Elle ne part pas.',
+    flee: 'Tu te lèves. Le fil te retient au poignet. Tu te rassois.',
+    deny: 'Quand tu regardes à nouveau, elle est toujours là. Plus près.',
     release: 'Le fil se détend. Il n\'y a plus de nœud — seulement deux mains qui l\'ont tenu.',
   },
 
@@ -234,13 +259,13 @@ window.MNP_CONTENT = {
         'On frappe. Quelqu\'un d\'autre attend déjà.',
       ],
     },
-    // Atteignable en v2, quand silence / fuite / regard détourné existeront.
+    // Évitement répété : silence, fuite, regard détourné.
     void: {
       title: 'Personne',
       text: [
         'Plus personne ne vient.',
         'Le trône ne pèse presque rien. Les marques que tu y as laissées sont creuses, grises, comme des empreintes de doigts sur une vitre.',
-        'Tu n\'as rien promis. Tu n\'as rien entendu non plus.',
+        'Le fil s\'est dénoué, à la fin. C\'est la seule chose que tu aies vraiment entendue.',
         'Tu es libre. Il n\'y a rien autour.',
       ],
     },
