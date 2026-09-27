@@ -1,4 +1,4 @@
-# Make No Promises — prototype 3
+# Make No Promises — prototype 4
 
 ## Jouer
 
@@ -14,20 +14,24 @@ Si rien ne se passe au clic : le fichier ouvert est sans doute `src/index.html` 
 
 ## Contenu du prototype
 
-- **Scène du trône** (SVG) : fissures, chaînes et vignettage suivent une variable de poids. Le poids hérité (6) est visible dès l'ouverture : fissures, deux chaînes et le fil noué au poignet, sans explication.
-- **Les cinq réponses** du menu (touches 1 à 5). Chacune ajoute du poids et fait pousser une ou plusieurs branches dans le fond :
-  - promettre → branche dorée ;
-  - y réfléchir → branche en pointillés, qui continue de peser à chaque tour ;
-  - confier à un proche → branche avec un nœud (le proche qui porte la promesse) ;
-  - refuser → branche anguleuse, figée ;
-  - refuser mais promettre la suivante → deux branches, et une dette : si la demande suivante n'est pas acceptée, la promesse se brise (poids supplémentaire, branche cassée).
+- **Direction visuelle « Lavis »** : encre sur papier. Le trône est peint au pinceau et au lavis. Les silhouettes sont des taches d'encre diluée qui bavent dans le papier, puis leur trait sèche et se précise à mesure que les promesses s'accumulent. Chaque vérité potentielle est un sceau apposé sur le rouleau :
+  - promesse : sceau vermillon ;
+  - réflexion : sceau jamais appuyé, en pointillés ;
+  - délégation : sceau rond d'un proche ;
+  - refus : sceau à l'encre noire ;
+  - oui promis pour la suite : cercle pointillé ;
+  - promesse brisée : sceau fendu.
+
+  Le fil est indigo. L'évitement enlève le lavis et laisse le papier nu, et le rouleau se délave. Typographies : Zen Old Mincho pour les titres, Spectral pour le texte.
+- **Scène du trône** (SVG) : fissures, chaînes et assombrissement des bords suivent une variable de poids. Le poids hérité (6) est visible dès l'ouverture : fissures, deux chaînes et le fil noué au poignet, sans explication.
+- **Les cinq réponses** du menu (touches 1 à 5, numérotées 一 à 五 sur les sceaux). Chacune ajoute du poids et appose un ou plusieurs sceaux. « J'y réfléchis » continue de peser à chaque tour. « Refuser mais promettre la suivante » crée une dette : si la demande suivante n'est pas acceptée, la promesse se brise (poids supplémentaire, sceau fendu).
 - **Rester et écouter** (hors menu) : cliquer sur la silhouette au lieu du menu (ou la sélectionner au clavier avec Tab puis Entrée). Chaque clic fait parler la silhouette un peu plus. Si on l'écoute jusqu'au bout sans rien choisir, elle part sans rien emporter et le poids diminue. Rien dans le jeu ne l'indique.
 - **Trois sorties par évitement** (hors menu, jamais nommées) :
   - *Silence* : ne rien faire. Au bout de 30 s, la silhouette part. Un indice « La silhouette attend. » apparaît aux 60 % du délai. Écouter ou jouer remet la minuterie à zéro.
   - *Fuite* : cliquer sur le trône ou sur le protagoniste, ou appuyer sur Échap. Le protagoniste se lève et part, la silhouette reste seule devant le trône vide, puis le protagoniste revient. Le fil reste noué au poignet pendant la fuite.
   - *Regard détourné* : changer d'onglet ou réduire la fenêtre (`visibilitychange`) pendant plus de 1,2 s. Au retour, la silhouette a disparu.
 
-  Aucune ne crée de branche. Chacune ajoute un poids léger (0,5) et laisse au sol une marque terne et creuse propre à son type : cercle en pointillés pour le silence, empreintes vides pour la fuite, paupière close pour le regard détourné. Le monde se désature peu à peu à mesure que les évitements s'accumulent. Écouter, au contraire, allège le poids sans laisser de marque.
+  Aucune n'appose de sceau. Chacune ajoute un poids léger (0,5) et laisse au sol une tache où le lavis a été enlevé, jusqu'au papier nu, en forme propre à son type : tache ronde pour le silence, deux empreintes pour la fuite, paupière close pour le regard détourné. Le rouleau se délave peu à peu à mesure que les évitements s'accumulent. Écouter, au contraire, allège le poids sans laisser de marque.
 - **Silhouettes** : informes au début, elles se précisent (contours, yeux) à mesure que les promesses s'accumulent.
 - **Silhouette récurrente** (tours 3, 7 et 12) : elle tient l'autre bout du fil et répète « Je t'attends toujours au même endroit ». Son contour glisse vers celui du protagoniste, en miroir, en fonction du poids (`state.recurring.recognition`).
 - **Rencontre finale** : le menu se grippe. Promettre, réfléchir, déléguer et « la prochaine » échouent et s'éteignent. Refuser tourne en boucle. Les évitements échouent aussi : le silence dure, le fil retient la fuite, et la silhouette est toujours là quand on revient, plus près. Seule l'écoute permet d'avancer. Le fil se dénoue alors.
@@ -37,7 +41,7 @@ Si rien ne se passe au clic : le fichier ouvert est sans doute `src/index.html` 
   - *Personne* : évitement répété, s'il y a au moins 3 évitements et qu'ils dépassent le nombre d'écoutes et de promesses.
 
   Aucune fin ne tranche le dilemme entre défaire les branches et continuer à en créer.
-- **Fissures animées** : chaque avancée d'une fissure s'éclaire le long du segment qui se fend, fait tomber de la poussière et, si elle est forte, fait trembler le trône. Sous un poids lourd, les fissures rougeoient comme des braises. Quand elles reculent, un éclat froid les parcourt. D'autres ramifications apparaissent quand le poids augmente.
+- **Fissures animées** : chaque avancée d'une fissure laisse une trace d'encre fraîche, fait tomber de la poussière et, si elle est forte, fait trembler le trône. Sous un poids lourd, le vermillon des sceaux suinte dans les fissures. Quand elles reculent, le papier se relève le long du trait. D'autres ramifications apparaissent quand le poids augmente.
 - **Ambiance sonore** : entièrement synthétisée (Web Audio, aucun fichier). Un bourdon grave porte le poids : une seconde mineure frotte de plus en plus fort à mesure que les promesses s'accumulent, et le son s'étouffe avec l'évitement. Chaque geste a son son :
   - promesse : cloche claire ;
   - réflexion : deux notes suspendues qui ne se résolvent pas ;
@@ -51,7 +55,7 @@ Si rien ne se passe au clic : le fichier ouvert est sans doute `src/index.html` 
   - menu grippé : grésillement.
 
   Chaque fin a sa propre couleur sonore.
-- **Sauvegarde** : `localStorage`, reprise au début du tour en cours. Chaque partie terminée laisse une marque sur la marche du trône : un trait pâle pour une libération, un bloc sombre pour le poids, un cercle creux pour l'évitement.
+- **Sauvegarde** : `localStorage`, reprise au début du tour en cours. Chaque partie terminée laisse une marque sur la marche du trône : un trait d'encre pour une libération, un petit sceau vermillon pour le poids, une tache de papier nu pour l'évitement.
 
 ## Fichiers
 

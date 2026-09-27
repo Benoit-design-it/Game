@@ -1,13 +1,19 @@
+/* Direction « Lavis » : encre sur papier, sceaux vermillon. Un seul monde, clair, dans les deux thèmes. */
 :root {
-  color-scheme: dark;
-  --bg: #050507;
-  --ink: #d9d3c7;
-  --ink-dim: #8c877e;
-  --ink-faint: #5d5953;
-  --self: #d6b878;
-  --line: #3a3740;
-  --panel: rgba(8, 8, 11, 0.92);
-  --serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  color-scheme: light;
+  --paper: #eee7d8;
+  --paper-lift: #f8f4ec;
+  --ink: #1b1a17;
+  --ink-soft: #3f3c36;
+  --ink-dim: #5e5a52;
+  --ink-faint: #6e6a62;
+  --wash: #a9a397;
+  --line: #c3bba9;
+  --vermilion: #b5361f;
+  --vermilion-deep: #8e2a18;
+  --indigo: #2f4a6d;
+  --serif: 'Spectral', Georgia, 'Times New Roman', serif;
+  --display: 'Zen Old Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif;
 }
 
 * { box-sizing: border-box; }
@@ -15,7 +21,7 @@
 html, body {
   margin: 0;
   height: 100%;
-  background: var(--bg);
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--serif);
 }
@@ -50,23 +56,25 @@ html, body {
 
 .cracks path { fill: none; stroke-linejoin: bevel; }
 .cracks .dark path {
-  stroke: #0a0a0d;
-  stroke-width: 2.2;
+  stroke: var(--ink);
+  stroke-width: 1.3;
   transition: stroke-dashoffset 2.4s ease;
 }
+/* Sous un poids lourd, le vermillon des sceaux suinte dans les fissures. */
 .cracks .ember { transition: opacity 3s ease; }
 .cracks .ember path {
-  stroke: #b0583a;
+  stroke: var(--vermilion);
   stroke-width: 5;
-  filter: url(#f-ember);
+  filter: url(#f-bleed);
   transition: stroke-dashoffset 2.4s ease;
-  animation: ember 4.5s ease-in-out infinite;
+  animation: ember 5s ease-in-out infinite;
 }
 @keyframes ember {
-  0%, 100% { opacity: 0.25; }
-  50% { opacity: 0.9; }
+  0%, 100% { opacity: 0.18; }
+  50% { opacity: 0.6; }
 }
-.cracks .flash path { stroke-width: 1.8; opacity: 0; filter: url(#f-glow); }
+/* Encre fraîche quand la fissure avance, papier qui se relève quand elle recule. */
+.cracks .flash path { stroke-width: 3.2; opacity: 0; filter: url(#f-wet); }
 .shaking { animation: throne-shake 0.6s ease-out; }
 @keyframes throne-shake {
   15% { transform: translate(-1.6px, 0.6px); }
@@ -76,10 +84,10 @@ html, body {
 }
 
 #chains g { transition: opacity 2s ease; }
-#chains ellipse { fill: none; stroke: #57545f; stroke-width: 2.4; }
+#chains ellipse { fill: none; stroke: #3a3833; stroke-width: 2.2; }
 
-#branches path { fill: none; transition: opacity 3s ease, stroke-dashoffset 3.5s ease; }
-#branches circle { transition: opacity 3s ease; }
+#branches .seal { transform-box: fill-box; transform-origin: center; }
+#branches .tie { fill: none; stroke: var(--ink); stroke-width: 0.8; opacity: 0.13; }
 #avoid-marks > g { animation: fade-in 3s ease both; }
 @keyframes fade-in { from { opacity: 0; } }
 
@@ -91,8 +99,8 @@ html, body {
 /* --- Panneau de dialogue --- */
 #panel {
   flex: 0 0 auto;
-  background: var(--panel);
-  border-top: 1px solid #1c1b21;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
   padding: 18px 16px 22px;
   min-height: 250px;
   max-height: 48vh;
@@ -112,8 +120,8 @@ html, body {
 }
 #lines p { margin: 0 0 0.45em; }
 #lines .visitor { color: var(--ink); }
-#lines .listen  { color: #bfb8ab; font-style: italic; }
-#lines .self    { color: var(--self); }
+#lines .listen  { color: var(--ink-soft); font-style: italic; }
+#lines .self    { color: var(--vermilion-deep); }
 #lines .outcome { color: var(--ink-dim); font-size: 1.08rem; }
 #lines .aside   { color: var(--ink-faint); font-style: italic; font-size: 1.08rem; }
 
@@ -123,7 +131,8 @@ html, body {
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 8px;
+  column-gap: 24px;
+  row-gap: 4px;
   transition: opacity 0.6s;
 }
 #choices.hidden { opacity: 0; pointer-events: none; }
@@ -139,9 +148,17 @@ button {
   text-align: left;
   transition: border-color 0.3s, color 0.3s, opacity 0.6s, filter 0.6s;
 }
-button:hover:not(:disabled), button:focus-visible { border-color: #8d8578; color: #fff; outline: none; }
-button:disabled { opacity: 0.35; cursor: default; }
-button.dead { opacity: 0.18; filter: blur(0.6px); text-decoration: line-through; text-decoration-color: #5d5953; }
+button:hover:not(:disabled) { border-color: var(--ink); }
+button:focus-visible { border-color: var(--ink); outline: 1px solid var(--ink); outline-offset: 2px; }
+button:disabled { opacity: 0.4; cursor: default; }
+button.dead { opacity: 0.22; filter: blur(0.5px); text-decoration: line-through; text-decoration-color: var(--ink-faint); }
+#choices button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-width: 0 0 1px;
+  padding: 10px 2px;
+}
 button.shake { animation: shake 0.45s; }
 @keyframes shake {
   20% { transform: translateX(-4px); }
@@ -149,7 +166,20 @@ button.shake { animation: shake 0.45s; }
   60% { transform: translateX(-3px); }
   80% { transform: translateX(2px); }
 }
-.key { color: var(--ink-faint); font-size: 0.85em; margin-right: 0.5em; }
+.key {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: var(--vermilion);
+  color: var(--paper);
+  font-family: var(--display);
+  font-size: 13px;
+  line-height: 1;
+}
+button.dead .key { background: var(--wash); }
 
 #continue {
   align-self: center;
@@ -172,29 +202,40 @@ button.shake { animation: shake 0.45s; }
   justify-content: center;
   gap: 28px;
   padding: 24px 16px;
-  background: rgba(3, 3, 5, 0.95);
+  background: rgba(238, 231, 216, 0.96);
   text-align: center;
   transition: opacity 1.6s ease;
   overflow-y: auto;
 }
 .overlay[hidden] { display: none; }
-#title-screen { background: rgba(3, 3, 5, 0.72); }
+#title-screen { background: rgba(238, 231, 216, 0.8); }
 .overlay.fading { opacity: 0; pointer-events: none; }
 .overlay h1 {
-  font-weight: 400;
+  font-family: var(--display);
+  font-weight: 700;
   font-size: clamp(2.2rem, 7vw, 4.2rem);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.04em;
+  text-wrap: balance;
   margin: 0;
 }
 .overlay h2 {
-  font-weight: 400;
+  font-family: var(--display);
+  font-weight: 700;
   font-size: clamp(1.8rem, 5vw, 2.8rem);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.04em;
   margin: 0;
+}
+.overlay h1::after, .overlay h2::after {
+  content: '';
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 18px auto 0;
+  background: var(--vermilion);
 }
 .overlay-actions { display: flex; gap: 12px; }
 .overlay-actions button { text-align: center; min-width: 140px; }
-#ending-text { max-width: 620px; font-size: 1.25rem; line-height: 1.55; color: #c9c2b5; }
+#ending-text { max-width: 620px; font-size: 1.22rem; line-height: 1.6; color: var(--ink-soft); }
 #ending-text p { margin: 0 0 0.9em; opacity: 0; animation: appear 2.4s ease forwards; }
 @keyframes appear { to { opacity: 1; } }
 
@@ -213,11 +254,11 @@ button.shake { animation: shake 0.45s; }
 .load-error {
   max-width: 520px;
   margin: 0;
-  color: #d9a38a;
+  color: var(--vermilion-deep);
   font-size: 1.05rem;
   line-height: 1.5;
 }
-.load-error code { font-size: 0.9em; color: #efd8c6; }
+.load-error code { font-size: 0.9em; color: var(--ink); }
 
 #debug {
   position: absolute;
@@ -234,6 +275,7 @@ button.shake { animation: shake 0.45s; }
 
 @media (max-width: 600px) {
   #lines { font-size: 1.12rem; }
+  #choices { row-gap: 0; }
   #panel { min-height: 280px; max-height: 58vh; }
   #choices { grid-template-columns: 1fr; gap: 6px; }
   button { padding: 8px 10px; font-size: 1rem; }

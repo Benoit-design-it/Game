@@ -4,6 +4,7 @@
   'use strict';
 
   const C = window.MNP_CONTENT;
+  const NUMERALS = ['一', '二', '三', '四', '五'];
   const audio = window.MNP_AUDIO || { start() {}, reset() {}, update() {}, play() {}, setMuted() {}, muted: true };
   const SAVE_KEY = 'mnp.save.v1';
   const META_KEY = 'mnp.meta.v1';
@@ -52,6 +53,13 @@
     for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
     if (parent) parent.appendChild(node);
     return node;
+  }
+
+  function mix(a, b, t) {
+    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+    const ch = (p, sh) => (p >> sh) & 255;
+    const c = [16, 8, 0].map((sh) => Math.round(ch(pa, sh) + (ch(pb, sh) - ch(pa, sh)) * clamp(t)));
+    return `#${c.map((x) => x.toString(16).padStart(2, '0')).join('')}`;
   }
 
   function hash(str) {
@@ -170,9 +178,9 @@
   };
 
   // Protagoniste
-  const protagShape = drawSelf($('#protagonist-shape'), { fill: '#0b0b0f', stroke: '#4a4550', 'stroke-width': 1, 'stroke-opacity': 0.5 });
+  const protagShape = drawSelf($('#protagonist-shape'), { fill: '#1b1a17' });
   const protagArmG = svg('g', { transform: `translate(${PROTAG.x} ${PROTAG.y})` }, $('#protagonist-arm'));
-  drawArm(protagArmG, SELF.arm).setAttribute('stroke', '#0b0b0f');
+  drawArm(protagArmG, SELF.arm).setAttribute('stroke', '#1b1a17');
   void protagShape;
 
   // Fissures : chacune apparaît à partir d'un seuil de poids.
@@ -252,7 +260,7 @@
   function crackFlash(c, from, to, kind) {
     if (reducedMotion || !c.flash.animate) return;
     const p = c.flash;
-    p.style.stroke = kind === 'grow' ? '#f1e3bd' : '#bcd3e0';
+    p.style.stroke = kind === 'grow' ? '#1b1a17' : '#fbf8f1';
     p.style.strokeDasharray = `${Math.max(0.001, to - from)} 2`;
     p.style.strokeDashoffset = -from;
     p.animate([{ opacity: 0 }, { opacity: 0.95, offset: 0.2 }, { opacity: 0 }], {
@@ -266,7 +274,7 @@
 
   function dust(x, y) {
     for (let i = 0; i < 7; i++) {
-      const g = svg('circle', { cx: x, cy: y, r: 0.6 + Math.random() * 1.1, fill: '#7a7482', opacity: 0 }, el.dust);
+      const g = svg('circle', { cx: x, cy: y, r: 0.5 + Math.random() * 1, fill: '#3a3833', opacity: 0 }, el.dust);
       const dx = (Math.random() - 0.5) * 18, dy = 18 + Math.random() * 42;
       const anim = g.animate([
         { transform: 'translate(0px, 0px)', opacity: 0.9 },
@@ -287,72 +295,65 @@
 
   // ---------------------------------------------------------------- branches
 
-  const BRANCH_STYLE = {
-    promise:  { stroke: '#caa55a', width: 1.2, opacity: 0.6 },
-    think:    { stroke: '#8d8da0', width: 1.1, opacity: 0.5, dash: '2 7' },
-    delegate: { stroke: '#7f95b8', width: 1.1, opacity: 0.55 },
-    refuse:   { stroke: '#8a4a42', width: 1.3, opacity: 0.55 },
-    future:   { stroke: '#d9ccb0', width: 1, opacity: 0.45, dash: '1 5' },
-    broken:   { stroke: '#4a434f', width: 1.6, opacity: 0.8 },
-  };
+  // Chaque vérité potentielle est un sceau apposé sur le rouleau, comme les sceaux de
+  // collectionneurs sur une peinture. Un fil d'encre très pâle le relie au trône.
+  const VERMILION = '#b5361f', INK = '#1b1a17', PAPER = '#eee7d8';
+  const GLYPHS = [
+    'M -1 -0.6 L 1 -0.6 M 0 -0.6 L 0 1',
+    'M -0.8 -0.8 L 0.8 0.8 M 0.8 -0.8 L -0.8 0.8',
+    'M -1 -0.7 L 1 -0.7 M -1 0 L 1 0 M -1 0.7 L 1 0.7',
+    'M -0.8 1 L 0 -1 L 0.8 1 M -0.4 0.2 L 0.4 0.2',
+    'M -1 -1 L -1 1 L 1 1 M -0.2 -1 L -0.2 0.3 L 1 0.3',
+    'M 0 -1 L 0 1 M -1 -0.2 Q 0 0.6 1 -0.2',
+  ];
+
+  function glyph(parent, r, size, color) {
+    const k = size * 0.3;
+    const d = GLYPHS[Math.floor(r() * GLYPHS.length)].replace(/-?\d+(\.\d+)?/g, (n) => (Number(n) * k).toFixed(2));
+    svg('path', { d, fill: 'none', stroke: color, 'stroke-width': 1.6, 'stroke-linecap': 'square' }, parent);
+  }
 
   function drawBranch(b, animate) {
     const r = rng(b.seed);
-    const st = BRANCH_STYLE[b.type];
-    const g = svg('g', {}, el.branches);
-    const sx = 715 + r() * 90, sy = 150 + r() * 50;
-    const ex = 30 + r() * 940, ey = 18 + r() * 260;
-    const c1 = [sx + (r() - 0.5) * 140, sy - 60 - r() * 80];
-    const c2 = [ex + (r() - 0.5) * 160, ey + 40 + r() * 80];
-    const bez = (t) => [0, 1].map((k) =>
-      (1 - t) ** 3 * [sx, sy][k] + 3 * (1 - t) ** 2 * t * c1[k] + 3 * (1 - t) * t * t * c2[k] + t ** 3 * [ex, ey][k]);
+    const x = 40 + r() * 920, y = 34 + r() * 180;
+    const rot = (r() - 0.5) * 14, size = 20 + r() * 9, h = size / 2;
+    const tie = svg('path', {
+      class: 'tie', d: `M 760 118 Q ${(760 + x) / 2} ${Math.min(y, 118) - 50} ${x} ${y}`,
+    }, el.branches);
+    if (b.type === 'think' || b.type === 'future') tie.setAttribute('stroke-dasharray', '2 5');
+    const g = svg('g', { transform: `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)})` }, el.branches);
+    const seal = svg('g', { class: 'seal' }, g);
 
-    let d;
-    if (b.type === 'refuse') {
-      // Réalité figée : trajet anguleux, rigide.
-      d = `M ${sx} ${sy}`;
-      for (let i = 1; i <= 4; i++) {
-        const [x, y] = bez(i / 4);
-        d += ` L ${x + (i < 4 ? (r() - 0.5) * 40 : 0)} ${y + (i < 4 ? (r() - 0.5) * 30 : 0)}`;
-      }
-    } else if (b.type === 'broken') {
-      const [mx, my] = bez(0.5), [nx, ny] = bez(0.56);
-      d = `M ${sx} ${sy} L ${mx} ${my} M ${nx + 6} ${ny - 4} L ${ex} ${ey}`;
-    } else {
-      d = `M ${sx} ${sy} C ${c1[0]} ${c1[1]} ${c2[0]} ${c2[1]} ${ex} ${ey}`;
-    }
-
-    const path = svg('path', {
-      d, stroke: st.stroke, 'stroke-width': st.width, 'stroke-linecap': 'round', opacity: st.opacity,
-    }, g);
-    if (st.dash) path.setAttribute('stroke-dasharray', st.dash);
-
-    if (b.type === 'delegate') {
-      const [nx, ny] = bez(0.45); // le proche qui porte la promesse à ta place
-      svg('circle', { cx: nx, cy: ny, r: 3.2, fill: st.stroke }, g);
-    }
-    if (b.type === 'promise' || b.type === 'delegate') {
-      svg('circle', { cx: ex, cy: ey, r: 2.4, fill: st.stroke, filter: 'url(#f-glow)' }, g);
-    } else if (b.type === 'think' || b.type === 'future') {
-      svg('circle', { cx: ex, cy: ey, r: 3, fill: 'none', stroke: st.stroke, 'stroke-width': 1 }, g);
+    if (b.type === 'promise') {
+      svg('rect', { x: -h, y: -h, width: size, height: size, fill: VERMILION }, seal);
+      glyph(seal, r, size, PAPER);
+    } else if (b.type === 'think') {
+      // En suspens : le sceau n'a jamais été appuyé.
+      svg('rect', { x: -h, y: -h, width: size, height: size, fill: 'none', stroke: VERMILION, 'stroke-width': 1.5, 'stroke-dasharray': '3 3' }, seal);
+    } else if (b.type === 'delegate') {
+      // Le sceau rond d'un proche, qui porte la promesse à ta place.
+      svg('circle', { r: h, fill: VERMILION }, seal);
+      glyph(seal, r, size * 0.8, PAPER);
     } else if (b.type === 'refuse') {
-      svg('path', { d: `M ${ex - 3} ${ey - 3} L ${ex + 3} ${ey + 3} M ${ex + 3} ${ey - 3} L ${ex - 3} ${ey + 3}`, stroke: st.stroke, 'stroke-width': 1.3 }, g);
+      // Un refus fige une réalité : sceau à l'encre noire.
+      svg('rect', { x: -h, y: -h, width: size, height: size, fill: INK }, seal);
+      glyph(seal, r, size, PAPER);
+    } else if (b.type === 'future') {
+      svg('circle', { r: h * 0.85, fill: 'none', stroke: VERMILION, 'stroke-width': 1.3, 'stroke-dasharray': '1 3', opacity: 0.8 }, seal);
+    } else if (b.type === 'broken') {
+      // Promesse brisée : le sceau fendu en deux.
+      svg('rect', { x: -h, y: -h, width: h - 1.5, height: size, fill: VERMILION, opacity: 0.85 }, seal);
+      svg('rect', { x: 2, y: -h + 3, width: h - 1.5, height: size, fill: VERMILION, opacity: 0.85, transform: 'rotate(8)' }, seal);
     }
 
-    if (animate && !reducedMotion) {
-      if (st.dash) {
-        g.style.opacity = 0;
-        requestAnimationFrame(() => requestAnimationFrame(() => { g.style.transition = 'opacity 3s'; g.style.opacity = 1; }));
-      } else {
-        path.setAttribute('pathLength', 1);
-        path.style.strokeDasharray = 1;
-        path.style.strokeDashoffset = 1;
-        g.querySelectorAll('circle').forEach((c) => { c.style.opacity = 0; });
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          path.style.strokeDashoffset = 0;
-          g.querySelectorAll('circle').forEach((c) => { c.style.transitionDelay = '2.6s'; c.style.opacity = 1; });
-        }));
-      }
+    if (animate && !reducedMotion && seal.animate) {
+      // Le coup de tampon.
+      seal.animate([
+        { transform: 'scale(1.7)', opacity: 0 },
+        { transform: 'scale(0.93)', opacity: 1, offset: 0.65 },
+        { transform: 'scale(1)', opacity: 1 },
+      ], { duration: 650, delay: 350, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'both' });
+      tie.animate([{ opacity: 0 }, { opacity: 0.13 }], { duration: 2500, fill: 'both' });
     }
   }
 
@@ -393,10 +394,12 @@
       ch.node.style.opacity = on ? 1 : 0;
     }
     audio.update(w, state.avoidCount);
-    el.vignette.style.opacity = (0.42 + clamp(w / 30) * 0.5).toFixed(3);
-    // L'évitement ne fissure pas : il ternit.
+    el.vignette.style.opacity = (0.22 + clamp(w / 30) * 0.55).toFixed(3);
+    // L'évitement ne fissure pas : il délave, comme un rouleau resté au soleil.
     const dull = clamp(state.avoidCount / 6);
-    el.scene.style.filter = dull ? `saturate(${(1 - dull * 0.75).toFixed(3)}) brightness(${(1 - dull * 0.2).toFixed(3)})` : '';
+    el.scene.style.filter = dull
+      ? `sepia(${(dull * 0.35).toFixed(3)}) saturate(${(1 - dull * 0.55).toFixed(3)}) contrast(${(1 - dull * 0.22).toFixed(3)}) brightness(${(1 + dull * 0.06).toFixed(3)})`
+      : '';
     renderAvoidMarks();
     renderDebug();
   }
@@ -407,34 +410,33 @@
     meta.runs.slice(-16).forEach((run, i) => {
       const x = 644 + i * 15, y = 507;
       if (run.ending === 'free') {
-        svg('line', { x1: x, y1: y - 4, x2: x, y2: y + 4, stroke: '#cfc4a8', 'stroke-width': 1, opacity: 0.6 }, el.runMarks);
+        svg('line', { x1: x, y1: y - 4, x2: x, y2: y + 4, stroke: '#1b1a17', 'stroke-width': 1, opacity: 0.45 }, el.runMarks);
       } else if (run.ending === 'void') {
-        svg('circle', { cx: x, cy: y, r: 4, fill: 'none', stroke: '#55555c', 'stroke-width': 1, 'stroke-dasharray': '2 2' }, el.runMarks);
+        svg('circle', { cx: x, cy: y, r: 4, fill: '#f8f4ec', filter: 'url(#f-lift)' }, el.runMarks);
       } else {
-        svg('rect', { x: x - 3, y: y - 4, width: 6, height: 8, fill: '#5a2f2b' }, el.runMarks);
+        svg('rect', { x: x - 3.5, y: y - 3.5, width: 7, height: 7, fill: '#b5361f' }, el.runMarks);
       }
     });
   }
 
-  // Marques d'évitement : ternes, creuses, différentes des promesses.
-  // Silence : cercle en pointillés. Fuite : empreintes vides. Regard détourné : paupière close.
+  // Marques d'évitement : le lavis est enlevé, il reste le papier nu. Ni encre ni sceau.
+  // Silence : une tache ronde. Fuite : deux empreintes. Regard détourné : une paupière close.
   function renderAvoidMarks() {
     if (el.avoidMarks.childElementCount > state.avoidMarks.length) el.avoidMarks.replaceChildren();
-    const ink = { fill: 'none', stroke: '#4d4d52', 'stroke-width': 1 };
+    const lift = { fill: '#f8f4ec', filter: 'url(#f-lift)' };
     for (let i = el.avoidMarks.childElementCount; i < state.avoidMarks.length; i++) {
       const r = rng(`avoid:${i}`);
-      const g = svg('g', { opacity: 0.75 }, el.avoidMarks);
+      const g = svg('g', { opacity: 0.95 }, el.avoidMarks);
       const kind = state.avoidMarks[i].kind;
       if (kind === 'flee') {
         const x = 880 + r() * 90, y = 530 + r() * 60;
-        svg('ellipse', { ...ink, cx: x, cy: y, rx: 5, ry: 2.6 }, g);
-        svg('ellipse', { ...ink, cx: x + 14, cy: y + 6, rx: 5, ry: 2.6 }, g);
+        svg('ellipse', { ...lift, cx: x, cy: y, rx: 6, ry: 3 }, g);
+        svg('ellipse', { ...lift, cx: x + 15, cy: y + 7, rx: 6, ry: 3 }, g);
       } else if (kind === 'deny') {
         const x = 560 + r() * 300, y = 530 + r() * 60;
-        svg('path', { ...ink, d: `M ${x - 9} ${y} Q ${x} ${y + 6} ${x + 9} ${y}` }, g);
-        for (const dx of [-5, 0, 5]) svg('path', { ...ink, d: `M ${x + dx} ${y + 3.5} l ${dx * 0.3} 4` }, g);
+        svg('path', { d: `M ${x - 12} ${y} Q ${x} ${y + 9} ${x + 12} ${y} Q ${x} ${y + 4} ${x - 12} ${y} Z`, ...lift }, g);
       } else {
-        svg('circle', { ...ink, cx: 600 + r() * 280, cy: 525 + r() * 60, r: 6 + r() * 5, 'stroke-dasharray': '3 3' }, g);
+        svg('ellipse', { ...lift, cx: 600 + r() * 280, cy: 525 + r() * 60, rx: 12 + r() * 8, ry: 5 + r() * 2 }, g);
       }
     }
   }
@@ -497,42 +499,47 @@
   function buildVisitor(v) {
     el.visitorBody.replaceChildren();
     el.visitorFeatures.replaceChildren();
-    const fill = '#1d1d26', rim = '#8e8a98';
+    // Encre diluée, grise et qui bave, puis de plus en plus pleine.
+    const inkAt = (t) => mix('#8f8a80', '#1b1a17', t);
+    const rim = '#1b1a17';
 
     if (v.recurring) {
-      // La silhouette récurrente : une forme informe qui glisse vers le contour du protagoniste.
+      // La silhouette récurrente : une tache informe qui glisse vers le contour du protagoniste.
       const rec = state.recurring.recognition;
+      const fill = inkAt(rec);
       const blob = genShape('fil');
-      const bg = svg('g', { fill, stroke: rim, 'stroke-width': 1.2, 'stroke-opacity': 0.25, opacity: 1 - rec }, el.visitorBody);
+      const bg = svg('g', { fill: inkAt(0.2), opacity: (1 - rec) * 0.75 }, el.visitorBody);
       svg('ellipse', { cx: blob.head.cx, cy: blob.head.cy, rx: blob.head.rx, ry: blob.head.ry, transform: `rotate(${blob.head.rot} ${blob.head.cx} ${blob.head.cy})` }, bg);
       svg('path', { d: blob.d }, bg);
-      drawArm(bg, `M ${blob.shoulder.x} ${blob.shoulder.y} Q ${blob.shoulder.x + 16} ${blob.shoulder.y + 18} 80 ${-HEAD_H + 88}`, 13).setAttribute('stroke', fill);
-
+      drawArm(bg, `M ${blob.shoulder.x} ${blob.shoulder.y} Q ${blob.shoulder.x + 16} ${blob.shoulder.y + 18} 80 ${-HEAD_H + 88}`, 13).setAttribute('stroke', inkAt(0.2));
       const self = svg('g', { transform: `translate(0 ${-HEAD_H}) scale(-1 1)`, opacity: rec }, el.visitorBody);
-      drawSelf(self, { fill, stroke: rim, 'stroke-width': 1.2, 'stroke-opacity': 0.6 * rec });
+      drawSelf(self, { fill });
       svg('path', { d: SELF.robe, fill }, self);
       drawArm(self, SELF.arm).setAttribute('stroke', fill);
 
-      setFilter(42 * (1 - rec) + (rec >= 1 ? 0 : 2), 7 * (1 - rec) + 0.4);
+      setFilter(36 * (1 - rec) + (rec >= 1 ? 0 : 2), 6 * (1 - rec) + 0.3);
       vis.attached = true;
     } else {
       // Silhouette ordinaire : se précise à mesure que les promesses s'accumulent.
       const clarity = clamp(0.06 + state.promiseCount / 10);
       const s = genShape(v.id);
-      const g = svg('g', { fill, stroke: rim, 'stroke-width': 1.2, 'stroke-opacity': clarity * 0.7 }, el.visitorBody);
+      const g = svg('g', {
+        fill: inkAt(clarity * 0.85), opacity: (0.6 + clarity * 0.35).toFixed(3),
+        stroke: rim, 'stroke-width': 1.4, 'stroke-opacity': (clarity * 0.8).toFixed(3),
+      }, el.visitorBody);
       svg('ellipse', { cx: s.head.cx, cy: s.head.cy, rx: s.head.rx, ry: s.head.ry, transform: `rotate(${s.head.rot} ${s.head.cx} ${s.head.cy})` }, g);
       svg('path', { d: s.d }, g);
-      const eyes = svg('g', { fill: '#d8cfbd', opacity: (clarity ** 1.6 * 0.75).toFixed(3) }, el.visitorFeatures);
+      const eyes = svg('g', { fill: '#eee7d8', opacity: (clarity ** 1.6 * 0.85).toFixed(3) }, el.visitorFeatures);
       const ey = s.head.cy - 2;
       svg('circle', { cx: s.head.cx - 7, cy: ey, r: 1.8 }, eyes);
       svg('circle', { cx: s.head.cx + 7, cy: ey, r: 1.8 }, eyes);
       if (clarity > 0.5) {
         svg('path', {
           d: `M ${s.head.cx - 5} ${ey + 13} Q ${s.head.cx} ${ey + 15} ${s.head.cx + 5} ${ey + 13}`,
-          fill: 'none', stroke: '#d8cfbd', 'stroke-width': 1, opacity: ((clarity - 0.5) * 1.2).toFixed(3),
+          fill: 'none', stroke: '#eee7d8', 'stroke-width': 1, opacity: ((clarity - 0.5) * 1.2).toFixed(3),
         }, el.visitorFeatures);
       }
-      setFilter(42 * (1 - clarity) + 2, 7 * (1 - clarity) + 0.6);
+      setFilter(36 * (1 - clarity) + 2, 6 * (1 - clarity) + 0.5);
       vis.attached = false;
     }
   }
@@ -614,7 +621,7 @@
     const b = document.createElement('button');
     b.type = 'button';
     b.dataset.choice = c.id;
-    b.innerHTML = `<span class="key">${i + 1}</span>`;
+    b.innerHTML = `<span class="key" aria-hidden="true">${NUMERALS[i] || i + 1}</span>`;
     b.appendChild(document.createTextNode(c.label));
     b.addEventListener('click', () => onChoice(c.id));
     el.choices.appendChild(b);

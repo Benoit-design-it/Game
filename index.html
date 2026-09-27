@@ -7,18 +7,24 @@
   <title>Make No Promises</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;1,400&family=Zen+Old+Mincho:wght@400;700&display=swap" rel="stylesheet">
   <style>
+/* Direction « Lavis » : encre sur papier, sceaux vermillon. Un seul monde, clair, dans les deux thèmes. */
 :root {
-  color-scheme: dark;
-  --bg: #050507;
-  --ink: #d9d3c7;
-  --ink-dim: #8c877e;
-  --ink-faint: #5d5953;
-  --self: #d6b878;
-  --line: #3a3740;
-  --panel: rgba(8, 8, 11, 0.92);
-  --serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  color-scheme: light;
+  --paper: #eee7d8;
+  --paper-lift: #f8f4ec;
+  --ink: #1b1a17;
+  --ink-soft: #3f3c36;
+  --ink-dim: #5e5a52;
+  --ink-faint: #6e6a62;
+  --wash: #a9a397;
+  --line: #c3bba9;
+  --vermilion: #b5361f;
+  --vermilion-deep: #8e2a18;
+  --indigo: #2f4a6d;
+  --serif: 'Spectral', Georgia, 'Times New Roman', serif;
+  --display: 'Zen Old Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif;
 }
 
 * { box-sizing: border-box; }
@@ -26,7 +32,7 @@
 html, body {
   margin: 0;
   height: 100%;
-  background: var(--bg);
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--serif);
 }
@@ -61,23 +67,25 @@ html, body {
 
 .cracks path { fill: none; stroke-linejoin: bevel; }
 .cracks .dark path {
-  stroke: #0a0a0d;
-  stroke-width: 2.2;
+  stroke: var(--ink);
+  stroke-width: 1.3;
   transition: stroke-dashoffset 2.4s ease;
 }
+/* Sous un poids lourd, le vermillon des sceaux suinte dans les fissures. */
 .cracks .ember { transition: opacity 3s ease; }
 .cracks .ember path {
-  stroke: #b0583a;
+  stroke: var(--vermilion);
   stroke-width: 5;
-  filter: url(#f-ember);
+  filter: url(#f-bleed);
   transition: stroke-dashoffset 2.4s ease;
-  animation: ember 4.5s ease-in-out infinite;
+  animation: ember 5s ease-in-out infinite;
 }
 @keyframes ember {
-  0%, 100% { opacity: 0.25; }
-  50% { opacity: 0.9; }
+  0%, 100% { opacity: 0.18; }
+  50% { opacity: 0.6; }
 }
-.cracks .flash path { stroke-width: 1.8; opacity: 0; filter: url(#f-glow); }
+/* Encre fraîche quand la fissure avance, papier qui se relève quand elle recule. */
+.cracks .flash path { stroke-width: 3.2; opacity: 0; filter: url(#f-wet); }
 .shaking { animation: throne-shake 0.6s ease-out; }
 @keyframes throne-shake {
   15% { transform: translate(-1.6px, 0.6px); }
@@ -87,10 +95,10 @@ html, body {
 }
 
 #chains g { transition: opacity 2s ease; }
-#chains ellipse { fill: none; stroke: #57545f; stroke-width: 2.4; }
+#chains ellipse { fill: none; stroke: #3a3833; stroke-width: 2.2; }
 
-#branches path { fill: none; transition: opacity 3s ease, stroke-dashoffset 3.5s ease; }
-#branches circle { transition: opacity 3s ease; }
+#branches .seal { transform-box: fill-box; transform-origin: center; }
+#branches .tie { fill: none; stroke: var(--ink); stroke-width: 0.8; opacity: 0.13; }
 #avoid-marks > g { animation: fade-in 3s ease both; }
 @keyframes fade-in { from { opacity: 0; } }
 
@@ -102,8 +110,8 @@ html, body {
 /* --- Panneau de dialogue --- */
 #panel {
   flex: 0 0 auto;
-  background: var(--panel);
-  border-top: 1px solid #1c1b21;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
   padding: 18px 16px 22px;
   min-height: 250px;
   max-height: 48vh;
@@ -123,8 +131,8 @@ html, body {
 }
 #lines p { margin: 0 0 0.45em; }
 #lines .visitor { color: var(--ink); }
-#lines .listen  { color: #bfb8ab; font-style: italic; }
-#lines .self    { color: var(--self); }
+#lines .listen  { color: var(--ink-soft); font-style: italic; }
+#lines .self    { color: var(--vermilion-deep); }
 #lines .outcome { color: var(--ink-dim); font-size: 1.08rem; }
 #lines .aside   { color: var(--ink-faint); font-style: italic; font-size: 1.08rem; }
 
@@ -134,7 +142,8 @@ html, body {
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 8px;
+  column-gap: 24px;
+  row-gap: 4px;
   transition: opacity 0.6s;
 }
 #choices.hidden { opacity: 0; pointer-events: none; }
@@ -150,9 +159,17 @@ button {
   text-align: left;
   transition: border-color 0.3s, color 0.3s, opacity 0.6s, filter 0.6s;
 }
-button:hover:not(:disabled), button:focus-visible { border-color: #8d8578; color: #fff; outline: none; }
-button:disabled { opacity: 0.35; cursor: default; }
-button.dead { opacity: 0.18; filter: blur(0.6px); text-decoration: line-through; text-decoration-color: #5d5953; }
+button:hover:not(:disabled) { border-color: var(--ink); }
+button:focus-visible { border-color: var(--ink); outline: 1px solid var(--ink); outline-offset: 2px; }
+button:disabled { opacity: 0.4; cursor: default; }
+button.dead { opacity: 0.22; filter: blur(0.5px); text-decoration: line-through; text-decoration-color: var(--ink-faint); }
+#choices button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-width: 0 0 1px;
+  padding: 10px 2px;
+}
 button.shake { animation: shake 0.45s; }
 @keyframes shake {
   20% { transform: translateX(-4px); }
@@ -160,7 +177,20 @@ button.shake { animation: shake 0.45s; }
   60% { transform: translateX(-3px); }
   80% { transform: translateX(2px); }
 }
-.key { color: var(--ink-faint); font-size: 0.85em; margin-right: 0.5em; }
+.key {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: var(--vermilion);
+  color: var(--paper);
+  font-family: var(--display);
+  font-size: 13px;
+  line-height: 1;
+}
+button.dead .key { background: var(--wash); }
 
 #continue {
   align-self: center;
@@ -183,29 +213,40 @@ button.shake { animation: shake 0.45s; }
   justify-content: center;
   gap: 28px;
   padding: 24px 16px;
-  background: rgba(3, 3, 5, 0.95);
+  background: rgba(238, 231, 216, 0.96);
   text-align: center;
   transition: opacity 1.6s ease;
   overflow-y: auto;
 }
 .overlay[hidden] { display: none; }
-#title-screen { background: rgba(3, 3, 5, 0.72); }
+#title-screen { background: rgba(238, 231, 216, 0.8); }
 .overlay.fading { opacity: 0; pointer-events: none; }
 .overlay h1 {
-  font-weight: 400;
+  font-family: var(--display);
+  font-weight: 700;
   font-size: clamp(2.2rem, 7vw, 4.2rem);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.04em;
+  text-wrap: balance;
   margin: 0;
 }
 .overlay h2 {
-  font-weight: 400;
+  font-family: var(--display);
+  font-weight: 700;
   font-size: clamp(1.8rem, 5vw, 2.8rem);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.04em;
   margin: 0;
+}
+.overlay h1::after, .overlay h2::after {
+  content: '';
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 18px auto 0;
+  background: var(--vermilion);
 }
 .overlay-actions { display: flex; gap: 12px; }
 .overlay-actions button { text-align: center; min-width: 140px; }
-#ending-text { max-width: 620px; font-size: 1.25rem; line-height: 1.55; color: #c9c2b5; }
+#ending-text { max-width: 620px; font-size: 1.22rem; line-height: 1.6; color: var(--ink-soft); }
 #ending-text p { margin: 0 0 0.9em; opacity: 0; animation: appear 2.4s ease forwards; }
 @keyframes appear { to { opacity: 1; } }
 
@@ -224,11 +265,11 @@ button.shake { animation: shake 0.45s; }
 .load-error {
   max-width: 520px;
   margin: 0;
-  color: #d9a38a;
+  color: var(--vermilion-deep);
   font-size: 1.05rem;
   line-height: 1.5;
 }
-.load-error code { font-size: 0.9em; color: #efd8c6; }
+.load-error code { font-size: 0.9em; color: var(--ink); }
 
 #debug {
   position: absolute;
@@ -245,6 +286,7 @@ button.shake { animation: shake 0.45s; }
 
 @media (max-width: 600px) {
   #lines { font-size: 1.12rem; }
+  #choices { row-gap: 0; }
   #panel { min-height: 280px; max-height: 58vh; }
   #choices { grid-template-columns: 1fr; gap: 6px; }
   button { padding: 8px 10px; font-size: 1rem; }
@@ -262,85 +304,88 @@ button.shake { animation: shake 0.45s; }
 </head>
 <body>
   <main id="game">
-    <svg id="scene" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid meet" aria-hidden="false">
+    <svg id="scene" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid meet">
       <defs>
-        <linearGradient id="g-sky" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="620">
-          <stop offset="0" stop-color="#050507"/>
-          <stop offset="0.8" stop-color="#0d0d12"/>
-        </linearGradient>
-        <linearGradient id="g-floor" gradientUnits="userSpaceOnUse" x1="0" y1="500" x2="0" y2="620">
-          <stop offset="0" stop-color="#131219"/>
-          <stop offset="1" stop-color="#060608"/>
-        </linearGradient>
-        <linearGradient id="g-stone" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stop-color="#26242c"/>
-          <stop offset="0.5" stop-color="#34313a"/>
-          <stop offset="1" stop-color="#1c1b21"/>
-        </linearGradient>
-        <radialGradient id="g-halo" gradientUnits="userSpaceOnUse" cx="760" cy="280" r="520">
-          <stop offset="0" stop-color="#3a3444" stop-opacity="0.55"/>
-          <stop offset="1" stop-color="#000" stop-opacity="0"/>
-        </radialGradient>
+        <!-- Grain du papier -->
+        <filter id="f-grain" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="8" result="g"/>
+          <feColorMatrix in="g" type="matrix" values="0 0 0 0 0.35  0 0 0 0 0.32  0 0 0 0 0.27  0 0 0 0.1 0"/>
+        </filter>
+        <!-- Trait de pinceau un peu irrégulier -->
+        <filter id="f-brush" x="-10%" y="-10%" width="120%" height="120%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" seed="3" result="n"/>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="4"/>
+        </filter>
+        <!-- Lavis enlevé : bords rongés -->
+        <filter id="f-lift" x="-30%" y="-60%" width="160%" height="220%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="3" seed="6" result="n"/>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="7"/>
+          <feGaussianBlur stdDeviation="0.8"/>
+        </filter>
+        <filter id="f-wash" x="-10%" y="-40%" width="120%" height="180%">
+          <feGaussianBlur stdDeviation="10"/>
+        </filter>
+        <!-- Silhouettes : encre diluée qui bave dans le papier, séchée par les promesses. -->
+        <filter id="f-visitor" x="-50%" y="-30%" width="200%" height="160%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="3" seed="11" result="noise">
+            <animate attributeName="baseFrequency" dur="13s" values="0.022;0.027;0.022" repeatCount="indefinite"/>
+          </feTurbulence>
+          <feDisplacementMap id="f-visitor-disp" in="SourceGraphic" in2="noise" scale="34" xChannelSelector="R" yChannelSelector="G" result="warped"/>
+          <feGaussianBlur id="f-visitor-blur" in="warped" stdDeviation="6"/>
+        </filter>
+        <filter id="f-bleed" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2.4"/>
+        </filter>
+        <filter id="f-wet" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="1.2"/>
+        </filter>
         <radialGradient id="g-vignette" gradientUnits="userSpaceOnUse" cx="500" cy="300" r="720">
-          <stop offset="0.45" stop-color="#000" stop-opacity="0"/>
-          <stop offset="1" stop-color="#000" stop-opacity="1"/>
+          <stop offset="0.5" stop-color="#2a2620" stop-opacity="0"/>
+          <stop offset="1" stop-color="#2a2620" stop-opacity="0.9"/>
         </radialGradient>
         <radialGradient id="g-presence" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stop-color="#f4ead2" stop-opacity="0.35"/>
-          <stop offset="1" stop-color="#f4ead2" stop-opacity="0"/>
+          <stop offset="0" stop-color="#fffdf6" stop-opacity="0.85"/>
+          <stop offset="1" stop-color="#fffdf6" stop-opacity="0"/>
         </radialGradient>
-
-        <!-- Silhouettes informes : bruit + déplacement + flou, atténués selon le poids. -->
-        <filter id="f-visitor" x="-40%" y="-20%" width="180%" height="140%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.016" numOctaves="2" seed="4" result="noise">
-            <animate attributeName="baseFrequency" dur="11s" values="0.016;0.022;0.016" repeatCount="indefinite"/>
-          </feTurbulence>
-          <feDisplacementMap id="f-visitor-disp" in="SourceGraphic" in2="noise" scale="40" xChannelSelector="R" yChannelSelector="G" result="warped"/>
-          <feGaussianBlur id="f-visitor-blur" in="warped" stdDeviation="8"/>
-        </filter>
-        <filter id="f-soft" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="1.4"/>
-        </filter>
-        <filter id="f-ember" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="2.5"/>
-        </filter>
-        <filter id="f-glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="3" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
       </defs>
 
-      <rect x="-1500" y="-200" width="4000" height="1020" fill="url(#g-sky)"/>
-      <rect x="-1500" y="-200" width="4000" height="1020" fill="url(#g-halo)"/>
+      <rect x="-1500" y="-200" width="4000" height="1020" fill="#eee7d8"/>
+      <rect x="-1500" y="-200" width="4000" height="1020" filter="url(#f-grain)" pointer-events="none"/>
 
-      <!-- Vérités potentielles : une branche par promesse. -->
+      <!-- Vérités potentielles : un sceau par promesse. -->
       <g id="branches"></g>
 
-      <!-- Sol et marches -->
-      <rect x="-1500" y="500" width="4000" height="320" fill="url(#g-floor)"/>
-      <rect x="610" y="514" width="300" height="14" fill="#1b1a20"/>
-      <rect x="630" y="500" width="260" height="14" fill="#232128"/>
+      <!-- Sol : un lavis, et la marche du trône -->
+      <rect x="-1500" y="492" width="4000" height="340" fill="#d6cdbb" filter="url(#f-wash)"/>
+      <g filter="url(#f-brush)">
+        <rect x="610" y="514" width="300" height="14" fill="#c3bba9" stroke="#1b1a17" stroke-width="1.6"/>
+        <rect x="630" y="500" width="260" height="14" fill="#cfc7b6" stroke="#1b1a17" stroke-width="1.6"/>
+      </g>
 
       <!-- Trône -->
       <g id="throne">
-        <path d="M 690 470 L 690 190 Q 690 150 720 130 L 760 92 L 800 130 Q 830 150 830 190 L 830 470 Z" fill="url(#g-stone)"/>
-        <path d="M 705 400 L 705 200 Q 705 168 730 152 L 760 122 L 790 152 Q 815 168 815 200 L 815 400 Z" fill="#1a1920"/>
+        <g filter="url(#f-brush)">
+          <path d="M 690 470 L 690 190 Q 690 150 720 130 L 760 92 L 800 130 Q 830 150 830 190 L 830 470 Z" fill="#cfc7b6" stroke="#1b1a17" stroke-width="3.2" stroke-linejoin="round"/>
+          <path d="M 705 400 L 705 200 Q 705 168 730 152 L 760 122 L 790 152 Q 815 168 815 200 L 815 400 Z" fill="#b7af9e"/>
+        </g>
         <g id="cracks-back" class="cracks"></g>
       </g>
 
       <!-- Le protagoniste, assis. Sa silhouette sert aussi de modèle à la silhouette récurrente. -->
       <g id="protagonist" transform="translate(748 268)">
-        <g id="protagonist-shape"></g>
+        <g id="protagonist-shape" filter="url(#f-brush)"></g>
       </g>
 
       <g id="throne-front">
-        <rect x="670" y="400" width="180" height="34" rx="3" fill="#2d2b33"/>
-        <path d="M 675 434 L 845 434 L 855 500 L 665 500 Z" fill="#232128"/>
-        <path id="robe" d="M 712 404 L 808 404 L 802 496 L 718 496 Z" fill="#101015"/>
-        <rect x="648" y="350" width="52" height="16" rx="4" fill="#3a3740"/>
-        <rect x="654" y="366" width="14" height="68" fill="#2a2830"/>
-        <rect x="820" y="350" width="52" height="16" rx="4" fill="#3a3740"/>
-        <rect x="852" y="366" width="14" height="68" fill="#2a2830"/>
+        <g filter="url(#f-brush)">
+          <rect x="670" y="400" width="180" height="34" fill="#a9a397" stroke="#1b1a17" stroke-width="2.4"/>
+          <path d="M 675 434 L 845 434 L 855 500 L 665 500 Z" fill="#c3bba9" stroke="#1b1a17" stroke-width="2.4"/>
+          <path id="robe" d="M 712 404 L 808 404 L 802 496 L 718 496 Z" fill="#1b1a17"/>
+          <rect x="648" y="350" width="52" height="16" fill="#1b1a17"/>
+          <rect x="654" y="366" width="14" height="68" fill="#1b1a17"/>
+          <rect x="820" y="350" width="52" height="16" fill="#1b1a17"/>
+          <rect x="852" y="366" width="14" height="68" fill="#1b1a17"/>
+        </g>
         <g id="protagonist-arm"></g>
         <g id="cracks-front" class="cracks"></g>
         <g id="chains"></g>
@@ -350,8 +395,8 @@ button.shake { animation: shake 0.45s; }
       <g id="dust"></g>
 
       <!-- Le fil de promesse non refermée, visible dès l'ouverture. -->
-      <path id="thread" d="" fill="none" stroke="#c9b27f" stroke-width="1.6" stroke-linecap="round" opacity="0.85"/>
-      <circle id="knot" cx="668" cy="356" r="4.5" fill="#c9b27f"/>
+      <path id="thread" d="" fill="none" stroke="#2f4a6d" stroke-width="1.6" stroke-linecap="round" opacity="0.9"/>
+      <circle id="knot" cx="668" cy="356" r="4" fill="#2f4a6d"/>
 
       <!-- La silhouette qui demande. -->
       <g id="visitor" tabindex="-1" aria-label="Silhouette" opacity="0">
@@ -360,7 +405,7 @@ button.shake { animation: shake 0.45s; }
       </g>
 
       <circle id="presence" cx="760" cy="300" r="260" fill="url(#g-presence)" opacity="0" pointer-events="none"/>
-      <rect id="vignette" x="-1500" y="-200" width="4000" height="1020" fill="url(#g-vignette)" opacity="0.6" pointer-events="none"/>
+      <rect id="vignette" x="-1500" y="-200" width="4000" height="1020" fill="url(#g-vignette)" opacity="0.3" pointer-events="none"/>
     </svg>
 
     <section id="panel" aria-live="polite">
@@ -1036,6 +1081,7 @@ window.MNP_AUDIO = (() => {
   'use strict';
 
   const C = window.MNP_CONTENT;
+  const NUMERALS = ['一', '二', '三', '四', '五'];
   const audio = window.MNP_AUDIO || { start() {}, reset() {}, update() {}, play() {}, setMuted() {}, muted: true };
   const SAVE_KEY = 'mnp.save.v1';
   const META_KEY = 'mnp.meta.v1';
@@ -1084,6 +1130,13 @@ window.MNP_AUDIO = (() => {
     for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
     if (parent) parent.appendChild(node);
     return node;
+  }
+
+  function mix(a, b, t) {
+    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+    const ch = (p, sh) => (p >> sh) & 255;
+    const c = [16, 8, 0].map((sh) => Math.round(ch(pa, sh) + (ch(pb, sh) - ch(pa, sh)) * clamp(t)));
+    return `#${c.map((x) => x.toString(16).padStart(2, '0')).join('')}`;
   }
 
   function hash(str) {
@@ -1202,9 +1255,9 @@ window.MNP_AUDIO = (() => {
   };
 
   // Protagoniste
-  const protagShape = drawSelf($('#protagonist-shape'), { fill: '#0b0b0f', stroke: '#4a4550', 'stroke-width': 1, 'stroke-opacity': 0.5 });
+  const protagShape = drawSelf($('#protagonist-shape'), { fill: '#1b1a17' });
   const protagArmG = svg('g', { transform: `translate(${PROTAG.x} ${PROTAG.y})` }, $('#protagonist-arm'));
-  drawArm(protagArmG, SELF.arm).setAttribute('stroke', '#0b0b0f');
+  drawArm(protagArmG, SELF.arm).setAttribute('stroke', '#1b1a17');
   void protagShape;
 
   // Fissures : chacune apparaît à partir d'un seuil de poids.
@@ -1284,7 +1337,7 @@ window.MNP_AUDIO = (() => {
   function crackFlash(c, from, to, kind) {
     if (reducedMotion || !c.flash.animate) return;
     const p = c.flash;
-    p.style.stroke = kind === 'grow' ? '#f1e3bd' : '#bcd3e0';
+    p.style.stroke = kind === 'grow' ? '#1b1a17' : '#fbf8f1';
     p.style.strokeDasharray = `${Math.max(0.001, to - from)} 2`;
     p.style.strokeDashoffset = -from;
     p.animate([{ opacity: 0 }, { opacity: 0.95, offset: 0.2 }, { opacity: 0 }], {
@@ -1298,7 +1351,7 @@ window.MNP_AUDIO = (() => {
 
   function dust(x, y) {
     for (let i = 0; i < 7; i++) {
-      const g = svg('circle', { cx: x, cy: y, r: 0.6 + Math.random() * 1.1, fill: '#7a7482', opacity: 0 }, el.dust);
+      const g = svg('circle', { cx: x, cy: y, r: 0.5 + Math.random() * 1, fill: '#3a3833', opacity: 0 }, el.dust);
       const dx = (Math.random() - 0.5) * 18, dy = 18 + Math.random() * 42;
       const anim = g.animate([
         { transform: 'translate(0px, 0px)', opacity: 0.9 },
@@ -1319,72 +1372,65 @@ window.MNP_AUDIO = (() => {
 
   // ---------------------------------------------------------------- branches
 
-  const BRANCH_STYLE = {
-    promise:  { stroke: '#caa55a', width: 1.2, opacity: 0.6 },
-    think:    { stroke: '#8d8da0', width: 1.1, opacity: 0.5, dash: '2 7' },
-    delegate: { stroke: '#7f95b8', width: 1.1, opacity: 0.55 },
-    refuse:   { stroke: '#8a4a42', width: 1.3, opacity: 0.55 },
-    future:   { stroke: '#d9ccb0', width: 1, opacity: 0.45, dash: '1 5' },
-    broken:   { stroke: '#4a434f', width: 1.6, opacity: 0.8 },
-  };
+  // Chaque vérité potentielle est un sceau apposé sur le rouleau, comme les sceaux de
+  // collectionneurs sur une peinture. Un fil d'encre très pâle le relie au trône.
+  const VERMILION = '#b5361f', INK = '#1b1a17', PAPER = '#eee7d8';
+  const GLYPHS = [
+    'M -1 -0.6 L 1 -0.6 M 0 -0.6 L 0 1',
+    'M -0.8 -0.8 L 0.8 0.8 M 0.8 -0.8 L -0.8 0.8',
+    'M -1 -0.7 L 1 -0.7 M -1 0 L 1 0 M -1 0.7 L 1 0.7',
+    'M -0.8 1 L 0 -1 L 0.8 1 M -0.4 0.2 L 0.4 0.2',
+    'M -1 -1 L -1 1 L 1 1 M -0.2 -1 L -0.2 0.3 L 1 0.3',
+    'M 0 -1 L 0 1 M -1 -0.2 Q 0 0.6 1 -0.2',
+  ];
+
+  function glyph(parent, r, size, color) {
+    const k = size * 0.3;
+    const d = GLYPHS[Math.floor(r() * GLYPHS.length)].replace(/-?\d+(\.\d+)?/g, (n) => (Number(n) * k).toFixed(2));
+    svg('path', { d, fill: 'none', stroke: color, 'stroke-width': 1.6, 'stroke-linecap': 'square' }, parent);
+  }
 
   function drawBranch(b, animate) {
     const r = rng(b.seed);
-    const st = BRANCH_STYLE[b.type];
-    const g = svg('g', {}, el.branches);
-    const sx = 715 + r() * 90, sy = 150 + r() * 50;
-    const ex = 30 + r() * 940, ey = 18 + r() * 260;
-    const c1 = [sx + (r() - 0.5) * 140, sy - 60 - r() * 80];
-    const c2 = [ex + (r() - 0.5) * 160, ey + 40 + r() * 80];
-    const bez = (t) => [0, 1].map((k) =>
-      (1 - t) ** 3 * [sx, sy][k] + 3 * (1 - t) ** 2 * t * c1[k] + 3 * (1 - t) * t * t * c2[k] + t ** 3 * [ex, ey][k]);
+    const x = 40 + r() * 920, y = 34 + r() * 180;
+    const rot = (r() - 0.5) * 14, size = 20 + r() * 9, h = size / 2;
+    const tie = svg('path', {
+      class: 'tie', d: `M 760 118 Q ${(760 + x) / 2} ${Math.min(y, 118) - 50} ${x} ${y}`,
+    }, el.branches);
+    if (b.type === 'think' || b.type === 'future') tie.setAttribute('stroke-dasharray', '2 5');
+    const g = svg('g', { transform: `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)})` }, el.branches);
+    const seal = svg('g', { class: 'seal' }, g);
 
-    let d;
-    if (b.type === 'refuse') {
-      // Réalité figée : trajet anguleux, rigide.
-      d = `M ${sx} ${sy}`;
-      for (let i = 1; i <= 4; i++) {
-        const [x, y] = bez(i / 4);
-        d += ` L ${x + (i < 4 ? (r() - 0.5) * 40 : 0)} ${y + (i < 4 ? (r() - 0.5) * 30 : 0)}`;
-      }
-    } else if (b.type === 'broken') {
-      const [mx, my] = bez(0.5), [nx, ny] = bez(0.56);
-      d = `M ${sx} ${sy} L ${mx} ${my} M ${nx + 6} ${ny - 4} L ${ex} ${ey}`;
-    } else {
-      d = `M ${sx} ${sy} C ${c1[0]} ${c1[1]} ${c2[0]} ${c2[1]} ${ex} ${ey}`;
-    }
-
-    const path = svg('path', {
-      d, stroke: st.stroke, 'stroke-width': st.width, 'stroke-linecap': 'round', opacity: st.opacity,
-    }, g);
-    if (st.dash) path.setAttribute('stroke-dasharray', st.dash);
-
-    if (b.type === 'delegate') {
-      const [nx, ny] = bez(0.45); // le proche qui porte la promesse à ta place
-      svg('circle', { cx: nx, cy: ny, r: 3.2, fill: st.stroke }, g);
-    }
-    if (b.type === 'promise' || b.type === 'delegate') {
-      svg('circle', { cx: ex, cy: ey, r: 2.4, fill: st.stroke, filter: 'url(#f-glow)' }, g);
-    } else if (b.type === 'think' || b.type === 'future') {
-      svg('circle', { cx: ex, cy: ey, r: 3, fill: 'none', stroke: st.stroke, 'stroke-width': 1 }, g);
+    if (b.type === 'promise') {
+      svg('rect', { x: -h, y: -h, width: size, height: size, fill: VERMILION }, seal);
+      glyph(seal, r, size, PAPER);
+    } else if (b.type === 'think') {
+      // En suspens : le sceau n'a jamais été appuyé.
+      svg('rect', { x: -h, y: -h, width: size, height: size, fill: 'none', stroke: VERMILION, 'stroke-width': 1.5, 'stroke-dasharray': '3 3' }, seal);
+    } else if (b.type === 'delegate') {
+      // Le sceau rond d'un proche, qui porte la promesse à ta place.
+      svg('circle', { r: h, fill: VERMILION }, seal);
+      glyph(seal, r, size * 0.8, PAPER);
     } else if (b.type === 'refuse') {
-      svg('path', { d: `M ${ex - 3} ${ey - 3} L ${ex + 3} ${ey + 3} M ${ex + 3} ${ey - 3} L ${ex - 3} ${ey + 3}`, stroke: st.stroke, 'stroke-width': 1.3 }, g);
+      // Un refus fige une réalité : sceau à l'encre noire.
+      svg('rect', { x: -h, y: -h, width: size, height: size, fill: INK }, seal);
+      glyph(seal, r, size, PAPER);
+    } else if (b.type === 'future') {
+      svg('circle', { r: h * 0.85, fill: 'none', stroke: VERMILION, 'stroke-width': 1.3, 'stroke-dasharray': '1 3', opacity: 0.8 }, seal);
+    } else if (b.type === 'broken') {
+      // Promesse brisée : le sceau fendu en deux.
+      svg('rect', { x: -h, y: -h, width: h - 1.5, height: size, fill: VERMILION, opacity: 0.85 }, seal);
+      svg('rect', { x: 2, y: -h + 3, width: h - 1.5, height: size, fill: VERMILION, opacity: 0.85, transform: 'rotate(8)' }, seal);
     }
 
-    if (animate && !reducedMotion) {
-      if (st.dash) {
-        g.style.opacity = 0;
-        requestAnimationFrame(() => requestAnimationFrame(() => { g.style.transition = 'opacity 3s'; g.style.opacity = 1; }));
-      } else {
-        path.setAttribute('pathLength', 1);
-        path.style.strokeDasharray = 1;
-        path.style.strokeDashoffset = 1;
-        g.querySelectorAll('circle').forEach((c) => { c.style.opacity = 0; });
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          path.style.strokeDashoffset = 0;
-          g.querySelectorAll('circle').forEach((c) => { c.style.transitionDelay = '2.6s'; c.style.opacity = 1; });
-        }));
-      }
+    if (animate && !reducedMotion && seal.animate) {
+      // Le coup de tampon.
+      seal.animate([
+        { transform: 'scale(1.7)', opacity: 0 },
+        { transform: 'scale(0.93)', opacity: 1, offset: 0.65 },
+        { transform: 'scale(1)', opacity: 1 },
+      ], { duration: 650, delay: 350, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'both' });
+      tie.animate([{ opacity: 0 }, { opacity: 0.13 }], { duration: 2500, fill: 'both' });
     }
   }
 
@@ -1425,10 +1471,12 @@ window.MNP_AUDIO = (() => {
       ch.node.style.opacity = on ? 1 : 0;
     }
     audio.update(w, state.avoidCount);
-    el.vignette.style.opacity = (0.42 + clamp(w / 30) * 0.5).toFixed(3);
-    // L'évitement ne fissure pas : il ternit.
+    el.vignette.style.opacity = (0.22 + clamp(w / 30) * 0.55).toFixed(3);
+    // L'évitement ne fissure pas : il délave, comme un rouleau resté au soleil.
     const dull = clamp(state.avoidCount / 6);
-    el.scene.style.filter = dull ? `saturate(${(1 - dull * 0.75).toFixed(3)}) brightness(${(1 - dull * 0.2).toFixed(3)})` : '';
+    el.scene.style.filter = dull
+      ? `sepia(${(dull * 0.35).toFixed(3)}) saturate(${(1 - dull * 0.55).toFixed(3)}) contrast(${(1 - dull * 0.22).toFixed(3)}) brightness(${(1 + dull * 0.06).toFixed(3)})`
+      : '';
     renderAvoidMarks();
     renderDebug();
   }
@@ -1439,34 +1487,33 @@ window.MNP_AUDIO = (() => {
     meta.runs.slice(-16).forEach((run, i) => {
       const x = 644 + i * 15, y = 507;
       if (run.ending === 'free') {
-        svg('line', { x1: x, y1: y - 4, x2: x, y2: y + 4, stroke: '#cfc4a8', 'stroke-width': 1, opacity: 0.6 }, el.runMarks);
+        svg('line', { x1: x, y1: y - 4, x2: x, y2: y + 4, stroke: '#1b1a17', 'stroke-width': 1, opacity: 0.45 }, el.runMarks);
       } else if (run.ending === 'void') {
-        svg('circle', { cx: x, cy: y, r: 4, fill: 'none', stroke: '#55555c', 'stroke-width': 1, 'stroke-dasharray': '2 2' }, el.runMarks);
+        svg('circle', { cx: x, cy: y, r: 4, fill: '#f8f4ec', filter: 'url(#f-lift)' }, el.runMarks);
       } else {
-        svg('rect', { x: x - 3, y: y - 4, width: 6, height: 8, fill: '#5a2f2b' }, el.runMarks);
+        svg('rect', { x: x - 3.5, y: y - 3.5, width: 7, height: 7, fill: '#b5361f' }, el.runMarks);
       }
     });
   }
 
-  // Marques d'évitement : ternes, creuses, différentes des promesses.
-  // Silence : cercle en pointillés. Fuite : empreintes vides. Regard détourné : paupière close.
+  // Marques d'évitement : le lavis est enlevé, il reste le papier nu. Ni encre ni sceau.
+  // Silence : une tache ronde. Fuite : deux empreintes. Regard détourné : une paupière close.
   function renderAvoidMarks() {
     if (el.avoidMarks.childElementCount > state.avoidMarks.length) el.avoidMarks.replaceChildren();
-    const ink = { fill: 'none', stroke: '#4d4d52', 'stroke-width': 1 };
+    const lift = { fill: '#f8f4ec', filter: 'url(#f-lift)' };
     for (let i = el.avoidMarks.childElementCount; i < state.avoidMarks.length; i++) {
       const r = rng(`avoid:${i}`);
-      const g = svg('g', { opacity: 0.75 }, el.avoidMarks);
+      const g = svg('g', { opacity: 0.95 }, el.avoidMarks);
       const kind = state.avoidMarks[i].kind;
       if (kind === 'flee') {
         const x = 880 + r() * 90, y = 530 + r() * 60;
-        svg('ellipse', { ...ink, cx: x, cy: y, rx: 5, ry: 2.6 }, g);
-        svg('ellipse', { ...ink, cx: x + 14, cy: y + 6, rx: 5, ry: 2.6 }, g);
+        svg('ellipse', { ...lift, cx: x, cy: y, rx: 6, ry: 3 }, g);
+        svg('ellipse', { ...lift, cx: x + 15, cy: y + 7, rx: 6, ry: 3 }, g);
       } else if (kind === 'deny') {
         const x = 560 + r() * 300, y = 530 + r() * 60;
-        svg('path', { ...ink, d: `M ${x - 9} ${y} Q ${x} ${y + 6} ${x + 9} ${y}` }, g);
-        for (const dx of [-5, 0, 5]) svg('path', { ...ink, d: `M ${x + dx} ${y + 3.5} l ${dx * 0.3} 4` }, g);
+        svg('path', { d: `M ${x - 12} ${y} Q ${x} ${y + 9} ${x + 12} ${y} Q ${x} ${y + 4} ${x - 12} ${y} Z`, ...lift }, g);
       } else {
-        svg('circle', { ...ink, cx: 600 + r() * 280, cy: 525 + r() * 60, r: 6 + r() * 5, 'stroke-dasharray': '3 3' }, g);
+        svg('ellipse', { ...lift, cx: 600 + r() * 280, cy: 525 + r() * 60, rx: 12 + r() * 8, ry: 5 + r() * 2 }, g);
       }
     }
   }
@@ -1529,42 +1576,47 @@ window.MNP_AUDIO = (() => {
   function buildVisitor(v) {
     el.visitorBody.replaceChildren();
     el.visitorFeatures.replaceChildren();
-    const fill = '#1d1d26', rim = '#8e8a98';
+    // Encre diluée, grise et qui bave, puis de plus en plus pleine.
+    const inkAt = (t) => mix('#8f8a80', '#1b1a17', t);
+    const rim = '#1b1a17';
 
     if (v.recurring) {
-      // La silhouette récurrente : une forme informe qui glisse vers le contour du protagoniste.
+      // La silhouette récurrente : une tache informe qui glisse vers le contour du protagoniste.
       const rec = state.recurring.recognition;
+      const fill = inkAt(rec);
       const blob = genShape('fil');
-      const bg = svg('g', { fill, stroke: rim, 'stroke-width': 1.2, 'stroke-opacity': 0.25, opacity: 1 - rec }, el.visitorBody);
+      const bg = svg('g', { fill: inkAt(0.2), opacity: (1 - rec) * 0.75 }, el.visitorBody);
       svg('ellipse', { cx: blob.head.cx, cy: blob.head.cy, rx: blob.head.rx, ry: blob.head.ry, transform: `rotate(${blob.head.rot} ${blob.head.cx} ${blob.head.cy})` }, bg);
       svg('path', { d: blob.d }, bg);
-      drawArm(bg, `M ${blob.shoulder.x} ${blob.shoulder.y} Q ${blob.shoulder.x + 16} ${blob.shoulder.y + 18} 80 ${-HEAD_H + 88}`, 13).setAttribute('stroke', fill);
-
+      drawArm(bg, `M ${blob.shoulder.x} ${blob.shoulder.y} Q ${blob.shoulder.x + 16} ${blob.shoulder.y + 18} 80 ${-HEAD_H + 88}`, 13).setAttribute('stroke', inkAt(0.2));
       const self = svg('g', { transform: `translate(0 ${-HEAD_H}) scale(-1 1)`, opacity: rec }, el.visitorBody);
-      drawSelf(self, { fill, stroke: rim, 'stroke-width': 1.2, 'stroke-opacity': 0.6 * rec });
+      drawSelf(self, { fill });
       svg('path', { d: SELF.robe, fill }, self);
       drawArm(self, SELF.arm).setAttribute('stroke', fill);
 
-      setFilter(42 * (1 - rec) + (rec >= 1 ? 0 : 2), 7 * (1 - rec) + 0.4);
+      setFilter(36 * (1 - rec) + (rec >= 1 ? 0 : 2), 6 * (1 - rec) + 0.3);
       vis.attached = true;
     } else {
       // Silhouette ordinaire : se précise à mesure que les promesses s'accumulent.
       const clarity = clamp(0.06 + state.promiseCount / 10);
       const s = genShape(v.id);
-      const g = svg('g', { fill, stroke: rim, 'stroke-width': 1.2, 'stroke-opacity': clarity * 0.7 }, el.visitorBody);
+      const g = svg('g', {
+        fill: inkAt(clarity * 0.85), opacity: (0.6 + clarity * 0.35).toFixed(3),
+        stroke: rim, 'stroke-width': 1.4, 'stroke-opacity': (clarity * 0.8).toFixed(3),
+      }, el.visitorBody);
       svg('ellipse', { cx: s.head.cx, cy: s.head.cy, rx: s.head.rx, ry: s.head.ry, transform: `rotate(${s.head.rot} ${s.head.cx} ${s.head.cy})` }, g);
       svg('path', { d: s.d }, g);
-      const eyes = svg('g', { fill: '#d8cfbd', opacity: (clarity ** 1.6 * 0.75).toFixed(3) }, el.visitorFeatures);
+      const eyes = svg('g', { fill: '#eee7d8', opacity: (clarity ** 1.6 * 0.85).toFixed(3) }, el.visitorFeatures);
       const ey = s.head.cy - 2;
       svg('circle', { cx: s.head.cx - 7, cy: ey, r: 1.8 }, eyes);
       svg('circle', { cx: s.head.cx + 7, cy: ey, r: 1.8 }, eyes);
       if (clarity > 0.5) {
         svg('path', {
           d: `M ${s.head.cx - 5} ${ey + 13} Q ${s.head.cx} ${ey + 15} ${s.head.cx + 5} ${ey + 13}`,
-          fill: 'none', stroke: '#d8cfbd', 'stroke-width': 1, opacity: ((clarity - 0.5) * 1.2).toFixed(3),
+          fill: 'none', stroke: '#eee7d8', 'stroke-width': 1, opacity: ((clarity - 0.5) * 1.2).toFixed(3),
         }, el.visitorFeatures);
       }
-      setFilter(42 * (1 - clarity) + 2, 7 * (1 - clarity) + 0.6);
+      setFilter(36 * (1 - clarity) + 2, 6 * (1 - clarity) + 0.5);
       vis.attached = false;
     }
   }
@@ -1646,7 +1698,7 @@ window.MNP_AUDIO = (() => {
     const b = document.createElement('button');
     b.type = 'button';
     b.dataset.choice = c.id;
-    b.innerHTML = `<span class="key">${i + 1}</span>`;
+    b.innerHTML = `<span class="key" aria-hidden="true">${NUMERALS[i] || i + 1}</span>`;
     b.appendChild(document.createTextNode(c.label));
     b.addEventListener('click', () => onChoice(c.id));
     el.choices.appendChild(b);
