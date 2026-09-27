@@ -7,7 +7,7 @@ const src = (f) => fs.readFileSync(path.join(__dirname, 'src', f), 'utf8');
 let html = src('index.html');
 
 html = html.replace('<link rel="stylesheet" href="style.css">', () => `<style>\n${src('style.css')}</style>`);
-html = html.replace(/<script src="([\w.-]+\.js)"><\/script>/g, (_, file) => {
+html = html.replace(/<script src="([\w./-]+\.js)"><\/script>/g, (_, file) => {
   const js = src(file);
   if (js.includes('</script')) throw new Error(`${file} contient « </script » : impossible de l'insérer tel quel.`);
   return `<script>\n${js}</script>`;

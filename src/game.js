@@ -5,6 +5,7 @@
 
   const C = window.MNP_CONTENT;
   const NUMERALS = ['一', '二', '三', '四', '五'];
+  const ink = window.MNP_INK || { init() { return false; }, setVisitor() {}, clear() {}, wake() {}, setEnabled() {}, setFilter() {}, available: false, enabled: false };
   const audio = window.MNP_AUDIO || { start() {}, reset() {}, update() {}, play() {}, setMuted() {}, muted: true };
   const SAVE_KEY = 'mnp.save.v1';
   const META_KEY = 'mnp.meta.v1';
@@ -400,6 +401,7 @@
     el.scene.style.filter = dull
       ? `sepia(${(dull * 0.35).toFixed(3)}) saturate(${(1 - dull * 0.55).toFixed(3)}) contrast(${(1 - dull * 0.22).toFixed(3)}) brightness(${(1 + dull * 0.06).toFixed(3)})`
       : '';
+    ink.setFilter(el.scene.style.filter);
     renderAvoidMarks();
     renderDebug();
   }
@@ -456,6 +458,7 @@
       `branches     ${s.branches.length}`,
       `récurrente   app=${s.recurring.appearances} reco=${s.recurring.recognition.toFixed(2)}`,
       `parties      ${meta.runs.map((r) => r.ending).join(', ') || '—'}`,
+      `encre        ${ink.available ? (ink.enabled ? 'vive (WebGL)' : 'simple (choisi)') : 'simple (WebGL indisponible)'}`,
     ].join('\n');
   }
 
@@ -489,6 +492,7 @@
     el.visitor.setAttribute('transform', `translate(${vis.x} ${FEET_Y})`);
     el.visitor.setAttribute('opacity', vis.o.toFixed(3));
     el.thread.setAttribute('d', threadPath());
+    ink.wake();
   }
 
   function setFilter(disp, blur) {
@@ -519,6 +523,27 @@
 
       setFilter(36 * (1 - rec) + (rec >= 1 ? 0 : 2), 6 * (1 - rec) + 0.3);
       vis.attached = true;
+      ink.setVisitor({
+        wet: 1 - rec,
+        layers: [
+          {
+            cover: 1 - rec, dens: 0.5,
+            shapes: [
+              { ellipse: [blob.head.cx, blob.head.cy, blob.head.rx, blob.head.ry, blob.head.rot] },
+              { d: blob.d },
+              { d: `M ${blob.shoulder.x} ${blob.shoulder.y} Q ${blob.shoulder.x + 16} ${blob.shoulder.y + 18} 80 ${-HEAD_H + 88}`, stroke: 13 },
+            ],
+          },
+          {
+            cover: rec, dens: 0.45 + 0.55 * rec, m: [-1, 0, 0, 1, 0, -HEAD_H],
+            shapes: [
+              { ellipse: [0, 0, SELF.head.rx, SELF.head.ry, SELF.head.rot] },
+              { d: SELF.body }, { d: SELF.robe }, { d: SELF.arm, stroke: 15 },
+            ],
+          },
+        ],
+        holes: [],
+      });
     } else {
       // Silhouette ordinaire : se précise à mesure que les promesses s'accumulent.
       const clarity = clamp(0.06 + state.promiseCount / 10);
@@ -541,6 +566,16 @@
       }
       setFilter(36 * (1 - clarity) + 2, 6 * (1 - clarity) + 0.5);
       vis.attached = false;
+      const eye = (dx) => ({ ellipse: [s.head.cx + dx, ey, 2.3, 2.3, 0] });
+      const holes = [{ strength: clarity ** 1.6 * 0.85, shapes: [eye(-7), eye(7)] }];
+      if (clarity > 0.5) {
+        holes.push({ strength: (clarity - 0.5) * 1.2, shapes: [{ d: `M ${s.head.cx - 5} ${ey + 13} Q ${s.head.cx} ${ey + 15} ${s.head.cx + 5} ${ey + 13}`, stroke: 1.6 }] });
+      }
+      ink.setVisitor({
+        wet: 1 - clarity,
+        layers: [{ cover: 1, dens: 0.42 + 0.55 * clarity, shapes: [{ ellipse: [s.head.cx, s.head.cy, s.head.rx, s.head.ry, s.head.rot] }, { d: s.d }] }],
+        holes,
+      });
     }
   }
 
@@ -1001,6 +1036,7 @@
     el.knot.style.opacity = '';
     vis.x = -140; vis.o = 0; vis.attached = false;
     prot.dx = 0; prot.dy = 0; prot.o = 1;
+    ink.clear();
     applyVisitor();
     applyProtag();
     clearLines();
@@ -1031,6 +1067,18 @@
   };
   soundBtn.addEventListener('click', () => { audio.start(); audio.setMuted(!audio.muted); soundLabel(); });
   soundLabel();
+
+  // Encre vive (simulation WebGL) ou encre simple (SVG), au choix quand l'appareil le permet.
+  const inkBtn = $('#btn-ink');
+  const inkLabel = () => {
+    inkBtn.textContent = ink.enabled ? 'encre vive' : 'encre simple';
+    inkBtn.setAttribute('aria-pressed', String(ink.enabled));
+  };
+  if (ink.init(el.scene, el.visitor)) {
+    inkBtn.hidden = false;
+    inkBtn.addEventListener('click', () => { ink.setEnabled(!ink.enabled); inkLabel(); });
+    inkLabel();
+  }
 
   $('#btn-start').addEventListener('click', () => begin(false));
   $('#btn-resume').addEventListener('click', () => begin(true));
