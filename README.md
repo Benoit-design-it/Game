@@ -14,7 +14,7 @@ Ouvrir `index.html` dans un navigateur. Aucune installation.
 - **Rester et écouter** (hors menu) : cliquer sur la silhouette au lieu du menu (ou la sélectionner au clavier avec Tab puis Entrée). Chaque clic fait parler la silhouette un peu plus. Si on l'écoute jusqu'au bout sans rien choisir, elle part sans rien emporter et le poids diminue. Rien dans le jeu ne l'indique.
 - **Trois sorties par évitement** (hors menu, jamais nommées) :
   - *Silence* : ne rien faire. Au bout de 30 s, la silhouette part. Un indice « La silhouette attend. » apparaît aux 60 % du délai. Écouter ou jouer remet la minuterie à zéro.
-  - *Fuite* : cliquer sur le trône ou sur le protagoniste, ou appuyer sur Échap. Le protagoniste se lève et part, la silhouette reste seule devant le trône vide, puis il revient. Le fil reste noué au poignet pendant la fuite.
+  - *Fuite* : cliquer sur le trône ou sur le protagoniste, ou appuyer sur Échap. Le protagoniste se lève et part, la silhouette reste seule devant le trône vide, puis le protagoniste revient. Le fil reste noué au poignet pendant la fuite.
   - *Regard détourné* : changer d'onglet ou réduire la fenêtre (`visibilitychange`) pendant plus de 1,2 s. Au retour, la silhouette a disparu.
 
   Aucune ne crée de branche. Chacune ajoute un poids léger (0,5) et laisse au sol une marque terne et creuse propre à son type : cercle en pointillés pour le silence, empreintes vides pour la fuite, paupière close pour le regard détourné. Le monde se désature peu à peu à mesure que les évitements s'accumulent. Écouter, au contraire, allège le poids sans laisser de marque.
