@@ -1,0 +1,2942 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<title>Protocole</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF0F1;
+  --ink:#14181B;
+  --ink-soft:#5A6368;
+  --rule:#C6CDD1;
+  --signal:#E8C21C;
+  --refus:#A93B2C;
+  --ok:#2F7D63;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
+  font-family:"Space Grotesk",system-ui,sans-serif;font-size:16px;line-height:1.5}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:24px 16px 48px;
+  background-image:linear-gradient(var(--rule) .5px,transparent .5px),linear-gradient(90deg,var(--rule) .5px,transparent .5px);
+  background-size:32px 32px;background-position:-1px -1px;opacity:1}
+#app{width:100%;max-width:860px}
+.instrument{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;
+  border-bottom:1px solid var(--ink);padding-bottom:8px;margin-bottom:0}
+#lvl-num{font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:.04em;
+  background:none;border:none;color:var(--ink);cursor:pointer;padding:2px 4px;font-weight:500}
+#lvl-num:hover{background:var(--signal)}
+#lvl-fam{font-size:13px;color:var(--ink-soft)}
+.spacer{flex:1}
+.tool{background:none;border:1px solid var(--rule);color:var(--ink-soft);
+  font-family:"Space Grotesk",sans-serif;font-size:12px;padding:3px 10px;cursor:pointer;border-radius:0}
+.tool:hover{border-color:var(--ink);color:var(--ink)}
+.tool[disabled]{opacity:.35;cursor:default}
+#chrome{display:none;border:1px solid var(--ink);border-bottom:none;margin-top:16px;
+  background:var(--paper);padding:5px 10px;font-family:"JetBrains Mono",monospace;font-size:12px;
+  max-width:280px;white-space:nowrap;overflow:hidden}
+#scene{position:relative;height:380px;border:1px solid var(--ink);background:#FBFCFC;
+  margin-top:16px;overflow:hidden;display:flex;align-items:center;justify-content:center;
+  user-select:none;touch-action:none}
+#scene.plain{background:#FBFCFC}
+#readout{display:flex;align-items:center;gap:12px;margin-top:8px;min-height:22px;
+  font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft)}
+#verdict{font-weight:500}
+#verdict.win{color:var(--ok)}
+#verdict.miss{color:var(--refus)}
+#hints{margin-top:12px;border-top:1px solid var(--rule);padding-top:10px;font-size:14px}
+#hints p{margin:0 0 6px;color:var(--ink-soft)}
+#hints p:last-child{margin-bottom:0}
+#menu{position:fixed;inset:0;background:var(--paper);padding:20px;overflow:auto;display:none;z-index:20}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:6px;margin-top:12px}
+.cell{aspect-ratio:1;border:1px solid var(--rule);background:#FBFCFC;font-family:"JetBrains Mono",monospace;
+  font-size:13px;cursor:pointer;color:var(--ink-soft)}
+.cell.done{background:var(--ok);border-color:var(--ok);color:#fff}
+.cell.skip{border:1px dashed var(--ink-soft);color:var(--ink)}
+.cell.here{border:2px solid var(--ink);color:var(--ink)}
+.cell[disabled]{opacity:.3;cursor:default}
+.obj{position:absolute;background:var(--ink)}
+.ball{border-radius:50%;background:var(--signal);border:1px solid var(--ink)}
+.btn{font-family:"Space Grotesk",sans-serif;font-size:15px;background:#FBFCFC;
+  border:1px solid var(--ink);padding:8px 18px;cursor:pointer;color:var(--ink)}
+.btn:hover{background:var(--signal)}
+.btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.field{font-family:"JetBrains Mono",monospace;font-size:14px;border:1px solid var(--ink);
+  background:#fff;padding:7px 10px;width:240px;color:var(--ink)}
+.mono{font-family:"JetBrains Mono",monospace}
+.big{font-family:"JetBrains Mono",monospace;font-size:56px;font-weight:500;line-height:1}
+.col{display:flex;flex-direction:column;align-items:center;gap:18px}
+.row{display:flex;align-items:center;gap:18px}
+footer{margin-top:20px;font-size:12px;color:var(--ink-soft);max-width:860px;width:100%}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div id="app">
+  <div class="instrument">
+    <button id="lvl-num" aria-label="Numéro du niveau">000</button>
+    <span id="lvl-fam"></span>
+    <span class="spacer"></span>
+    <button class="tool" id="btn-hint">Indice</button>
+    <button class="tool" id="btn-skip">Passer</button>
+    <button class="tool" id="btn-menu">Niveaux</button>
+  </div>
+  <div id="chrome"></div>
+  <div id="scene"></div>
+  <div id="readout"><span id="verdict"></span><span id="tries"></span></div>
+  <div id="hints"></div>
+  <div id="menu">
+    <strong>Niveaux</strong>
+    <div id="grid"></div>
+    <p style="margin-top:16px"><button class="tool" id="btn-close">Fermer</button>
+    <button class="tool" id="btn-reset">Effacer la progression</button></p>
+  </div>
+</div>
+<footer>Aucune règle n'est donnée. Chaque niveau a un but. Trouve-le.</footer>
+
+<script>
+var LEVELS=[];
+var Store=(function(){
+  var mem={};
+  var mode='mem';
+  try{ if(typeof window!=='undefined'&&window.storage&&window.storage.get) mode='host'; }catch(e){}
+  if(mode==='mem'){
+    try{ window.localStorage.setItem('__t','1'); window.localStorage.removeItem('__t'); mode='local'; }catch(e){}
+  }
+  var KEY='protocole:save';
+  function fresh(){ return {done:{},skipped:{},visits:{},cur:0,max:0}; }
+  function norm(v){
+    var c=fresh();
+    if(v&&typeof v==='object'){
+      ['done','skipped','visits'].forEach(function(k){ if(v[k]&&typeof v[k]==='object') c[k]=v[k]; });
+      c.cur=+v.cur||0; c.max=Math.max(+v.max||0,c.cur);
+    }
+    return c;
+  }
+  var cache=fresh();
+  return {
+    load:function(cb){
+      if(mode==='host'){
+        window.storage.get(KEY).then(function(r){
+          try{ cache=norm(JSON.parse(r.value)); }catch(e){}
+          cb(cache);
+        }).catch(function(){ cb(cache); });
+      } else if(mode==='local'){
+        try{ var v=window.localStorage.getItem(KEY); if(v) cache=norm(JSON.parse(v)); }catch(e){}
+        cb(cache);
+      } else { cb(cache); }
+    },
+    save:function(){
+      var s=JSON.stringify(cache);
+      if(mode==='host'){ try{ window.storage.set(KEY,s).catch(function(){}); }catch(e){} }
+      else if(mode==='local'){ try{ window.localStorage.setItem(KEY,s); }catch(e){} }
+      else { mem[KEY]=s; }
+    },
+    data:function(){ return cache; },
+    wipe:function(){ cache=fresh(); this.save(); }
+  };
+})();
+
+var Game=(function(){
+  var scene=document.getElementById('scene');
+  var chrome=document.getElementById('chrome');
+  var verdict=document.getElementById('verdict');
+  var triesEl=document.getElementById('tries');
+  var hintsEl=document.getElementById('hints');
+  var lvlNum=document.getElementById('lvl-num');
+  var lvlFam=document.getElementById('lvl-fam');
+  var btnHint=document.getElementById('btn-hint');
+  var btnSkip=document.getElementById('btn-skip');
+  var idx=0, cleanup=null, listeners=[], timers=[], tries=0, entered=0, shown=0, solved=false, live=null;
+
+  function track(t,e,f,o){ t.addEventListener(e,f,o); listeners.push([t,e,f,o]); }
+  function every(f,ms){ var id=setInterval(f,ms); timers.push(id); return id; }
+  function after(f,ms){ var id=setTimeout(f,ms); timers.push(id); return id; }
+  function purge(){
+    listeners.forEach(function(l){ l[0].removeEventListener(l[1],l[2],l[3]); });
+    listeners=[]; timers.forEach(clearInterval); timers.forEach(clearTimeout); timers=[];
+    if(cleanup){ try{ cleanup(); }catch(e){} cleanup=null; }
+  }
+  function el(tag,css,txt){
+    var n=document.createElement(tag);
+    if(css) n.style.cssText=css;
+    if(txt!=null) n.textContent=txt;
+    return n;
+  }
+  function say(msg,kind){
+    verdict.textContent=msg||'';
+    verdict.className=kind||'';
+  }
+  function miss(msg){
+    if(solved) return;
+    tries++;
+    say(msg||'Non','miss');
+    refreshTools();
+    after(function(){ if(verdict.className==='miss') say(''); },1400);
+  }
+  function win(){
+    if(solved) return;
+    solved=true;
+    purge();
+    say('Résolu','win');
+    var d=Store.data();
+    d.done[LEVELS[idx].id]=true; delete d.skipped[LEVELS[idx].id]; d.cur=idx; Store.save();
+    after(function(){ go(idx+1); },1100);
+  }
+  function refreshTools(){
+    var age=(Date.now()-entered)/1000;
+    var lv=LEVELS[idx];
+    var max=lv.hints.length;
+    var allowed=0;
+    if(age>25||tries>=2) allowed=1;
+    if(age>75||tries>=5) allowed=2;
+    if(age>150||tries>=9) allowed=3;
+    allowed=Math.min(allowed,max);
+    btnHint.disabled=(shown>=allowed);
+    btnHint.textContent=shown>=max?'Aucun indice restant':(shown>=allowed?'Indice (pas encore)':'Indice');
+    btnSkip.disabled=!(age>180||tries>=10);
+  }
+  function showHint(){
+    var lv=LEVELS[idx];
+    if(shown>=lv.hints.length) return;
+    var p=el('p',null,lv.hints[shown]);
+    hintsEl.appendChild(p);
+    shown++;
+    refreshTools();
+    if(lv.onHint) try{ lv.onHint(); }catch(e){}
+  }
+  function setChrome(txt){
+    if(txt==null){ chrome.style.display='none'; chrome.textContent=''; }
+    else { chrome.style.display='block'; chrome.textContent=txt; }
+  }
+  function go(i){
+    purge();
+    live=null;
+    if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
+    if(i>=LEVELS.length){ finish(); return; }
+    idx=i; tries=0; shown=0; solved=false; entered=Date.now();
+    scene.innerHTML=''; hintsEl.innerHTML=''; say(''); setChrome(null);
+    var lv=LEVELS[idx];
+    lvlNum.textContent=String(lv.id).padStart(3,'0')+' / '+LEVELS.length;
+    lvlFam.textContent=lv.family;
+    var d=Store.data();
+    d.visits[lv.id]=(d.visits[lv.id]||0)+1; d.cur=idx; d.max=Math.max(d.max||0,idx); Store.save();
+    // Les rappels d'un niveau quitté (requestAnimationFrame, setTimeout bruts) ne doivent jamais agir sur le suivant.
+    var token=live={};
+    function guard(f){ return function(){ if(live===token) return f.apply(null,arguments); }; }
+    var ctx={
+      scene:scene, el:el, on:track, every:every, after:after,
+      win:guard(win), miss:guard(miss), say:guard(say), setChrome:guard(setChrome),
+      alive:function(){ return live===token; },
+      visits:d.visits[lv.id], hud:{num:lvlNum,fam:lvlFam,hint:btnHint,menu:document.getElementById('btn-menu')},
+      onHintUsed:null
+    };
+    cleanup=lv.build(ctx)||null;
+    lv._ctx=ctx;
+    refreshTools();
+    every(refreshTools,1000);
+    every(function(){ triesEl.textContent=tries?('essais '+tries):''; },400);
+  }
+  function finish(){
+    purge();
+    idx=LEVELS.length;
+    scene.innerHTML=''; hintsEl.innerHTML=''; say(''); setChrome(null); triesEl.textContent='';
+    var d=Store.data();
+    d.cur=LEVELS.length; d.max=LEVELS.length; Store.save();
+    var found=LEVELS.filter(function(l){ return d.done[l.id]; }).length;
+    var box=el('div','text-align:center');
+    box.appendChild(el('div','font-size:22px;font-weight:500','Protocole terminé'));
+    box.appendChild(el('div','margin-top:8px;color:var(--ink-soft);font-size:14px',
+      found===LEVELS.length?LEVELS.length+' règles trouvées sans qu\'aucune ne soit dite.'
+        :found+' règles trouvées sur '+LEVELS.length+'. Les autres attendent dans la liste des niveaux.'));
+    scene.appendChild(box);
+    lvlNum.textContent='fin';
+    lvlFam.textContent='';
+    btnHint.disabled=true; btnSkip.disabled=true;
+  }
+  btnHint.addEventListener('click',function(){
+    var lv=LEVELS[idx];
+    if(lv.winOnHint&&!solved){ showHint(); win(); return; }
+    showHint();
+  });
+  btnSkip.addEventListener('click',function(){
+    if(btnSkip.disabled||solved||idx>=LEVELS.length) return;
+    var d=Store.data(); d.skipped[LEVELS[idx].id]=true; Store.save();
+    go(idx+1);
+  });
+  // Un clic souris ne laisse pas le focus sur les outils : sinon Entrée (niveaux 23, 69...) les déclencherait.
+  document.querySelectorAll('.instrument button').forEach(function(b){
+    b.addEventListener('mousedown',function(e){ e.preventDefault(); });
+  });
+  return {go:go,el:el,at:function(){return idx;},levels:function(){return LEVELS;},say:say,
+          hintCount:function(){return shown;}};
+})();
+</script>
+<script>
+function push(o){ LEVELS.push(o); }
+
+push({id:1,family:'Inaction',hints:[
+ 'Bouger est possible. Possible ne veut pas dire demandé.',
+ 'Le niveau mesure une durée, pas un déplacement.',
+ 'Lâche la balle et ne touche plus à rien pendant dix secondes.'],
+ build:function(c){
+  var b=c.el('div','width:38px;height:38px;left:50%;top:50%;transform:translate(-50%,-50%);cursor:grab');
+  b.className='obj ball'; c.scene.appendChild(b);
+  var last=Date.now(),drag=false;
+  c.on(b,'pointerdown',function(e){ drag=true; last=Date.now(); e.preventDefault(); });
+  c.on(window,'pointermove',function(e){
+    if(!drag) return;
+    var r=c.scene.getBoundingClientRect();
+    b.style.left=Math.max(19,Math.min(r.width-19,e.clientX-r.left))+'px';
+    b.style.top=Math.max(19,Math.min(r.height-19,e.clientY-r.top))+'px';
+    last=Date.now();
+  });
+  c.on(window,'pointerup',function(){ drag=false; });
+  c.every(function(){ if(Date.now()-last>=10000) c.win(); },200);
+ }});
+
+push({id:2,family:'Inversion',hints:[
+ 'La flèche indique une direction. Elle n\'indique pas ton but.',
+ 'Suivre la flèche éloigne du but.',
+ 'Amène le curseur au bord opposé à celui que la flèche désigne.'],
+ build:function(c){
+  var wrap=c.el('div','position:absolute;inset:0');
+  var arrow=c.el('div','position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:64px;color:var(--ink)','\u2192');
+  var mark=c.el('div','position:absolute;right:12px;top:50%;transform:translateY(-50%);width:8px;height:120px;background:var(--rule)');
+  wrap.appendChild(arrow); wrap.appendChild(mark); c.scene.appendChild(wrap);
+  c.on(c.scene,'pointermove',function(e){
+    var r=c.scene.getBoundingClientRect();
+    if(e.clientX-r.left<18) c.win();
+  });
+ }});
+
+push({id:3,family:'Timing',hints:[
+ 'La jauge ne demande pas d\'être remplie.',
+ 'Une seule valeur est acceptée, et elle ne change jamais.',
+ 'Arrête la jauge quand elle est exactement à la moitié.'],
+ build:function(c){
+  var col=c.el('div'); col.className='col';
+  var track=c.el('div','width:420px;max-width:calc(100vw - 72px);height:12px;border:1px solid var(--ink);background:#fff');
+  var fill=c.el('div','height:100%;width:0%;background:var(--signal)');
+  track.appendChild(fill);
+  var btn=c.el('button',null,'Arrêter'); btn.className='btn';
+  col.appendChild(track); col.appendChild(btn); c.scene.appendChild(col);
+  var v=0,dir=1,last=Date.now(),raf;
+  function tick(){
+    var n=Date.now(); v+=dir*((n-last)/2600)*100; last=n;
+    if(v>=100){v=100;dir=-1;} if(v<=0){v=0;dir=1;}
+    fill.style.width=v.toFixed(1)+'%'; raf=requestAnimationFrame(tick);
+  }
+  raf=requestAnimationFrame(tick);
+  c.on(btn,'click',function(){
+    if(v>=47&&v<=53){ cancelAnimationFrame(raf); c.win(); } else c.miss();
+  });
+  return function(){ cancelAnimationFrame(raf); };
+ }});
+
+push({id:4,family:'Séquence',hints:[
+ 'Les quatre formes sont cliquables. L\'ordre compte.',
+ 'Ce n\'est ni l\'ordre d\'affichage ni la position.',
+ 'Clique-les de la plus petite à la plus grande.'],
+ build:function(c){
+  var sizes=[54,22,74,38], order=[1,3,0,2], step=0;
+  var row=c.el('div'); row.className='row';
+  var nodes=sizes.map(function(s,i){
+    var d=c.el('div','width:'+s+'px;height:'+s+'px;background:var(--ink);cursor:pointer');
+    c.on(d,'click',function(){
+      if(order[step]===i){ step++; d.style.background='var(--signal)';
+        if(step===4) c.win();
+      } else {
+        step=0; nodes.forEach(function(n){ n.style.background='var(--ink)'; }); c.miss();
+      }
+    });
+    return d;
+  });
+  nodes.forEach(function(n){ row.appendChild(n); });
+  c.scene.appendChild(row);
+ }});
+
+push({id:5,family:'Quantité',hints:[
+ 'Le compteur monte sans limite apparente. Il y a pourtant une limite.',
+ 'Un seul nombre gagne. Le dépasser fait tout perdre.',
+ 'Arrête-toi à sept.'],
+ build:function(c){
+  var v=0;
+  var col=c.el('div'); col.className='col';
+  var n=c.el('div',null,'0'); n.className='big';
+  var b=c.el('button',null,'+1'); b.className='btn';
+  col.appendChild(n); col.appendChild(b); c.scene.appendChild(col);
+  c.on(b,'click',function(){
+    v++;
+    if(v>7){ v=0; n.textContent='0'; c.miss('Trop'); return; }
+    n.textContent=v;
+    if(v===7) c.after(function(){ if(v===7) c.win(); },400);
+  });
+ }});
+
+push({id:6,family:'Motif',hints:[
+ 'Chaque case a deux états. Le niveau juge l\'ensemble, pas les clics.',
+ 'Une seule configuration est acceptée, et elle est régulière.',
+ 'Fais un damier.'],
+ build:function(c){
+  var g=c.el('div','display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(3,58px);gap:5px');
+  var cells=[];
+  for(var i=0;i<9;i++){
+    var d=c.el('div','background:#fff;border:1px solid var(--ink);cursor:pointer');
+    d.dataset.s='0'; cells.push(d); g.appendChild(d);
+    (function(d){ c.on(d,'click',function(){
+      d.dataset.s=d.dataset.s==='0'?'1':'0';
+      d.style.background=d.dataset.s==='1'?'var(--ink)':'#fff';
+      var a=true,b=true;
+      for(var r=0;r<3;r++) for(var k=0;k<3;k++){
+        var s=cells[r*3+k].dataset.s, p=(r+k)%2===0;
+        if(s!==(p?'1':'0')) a=false;
+        if(s!==(p?'0':'1')) b=false;
+      }
+      if(a||b) c.win();
+    }); })(d);
+  }
+  c.scene.appendChild(g);
+ }});
+
+push({id:7,family:'Négligence',hints:[
+ 'L\'élément le plus visible n\'est pas toujours l\'élément utile.',
+ 'Le bouton qui bouge ne sert à rien. Regarde ce qui ne bouge pas.',
+ 'Clique le petit point immobile dans le coin.'],
+ build:function(c){
+  var big=c.el('button',null,'Appuyer ici'); big.className='btn';
+  big.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:20px;padding:18px 34px';
+  var dot=c.el('div','position:absolute;right:16px;bottom:16px;width:9px;height:9px;background:var(--ink-soft);cursor:pointer');
+  c.scene.appendChild(big); c.scene.appendChild(dot);
+  var t=0;
+  c.every(function(){ t++; big.style.opacity=(t%2?0.55:1); },420);
+  c.on(big,'click',function(){ c.miss(); });
+  c.on(dot,'click',function(){ c.win(); });
+ }});
+
+push({id:8,family:'Méta',hints:[
+ 'La scène est vide. Le jeu ne l\'est pas.',
+ 'Le but n\'est pas dans le cadre, il est autour.',
+ 'Clique le numéro du niveau, en haut à gauche.'],
+ build:function(c){
+  c.scene.appendChild(c.el('div','color:var(--ink-soft);font-size:13px','\u2014'));
+  var h=function(){ c.win(); };
+  c.on(c.hud.num,'click',h);
+  c.on(c.scene,'click',function(){ c.miss(); });
+ }});
+
+push({id:9,family:'Coopération',hints:[
+ 'Les deux balles se déplacent. Séparément, aucune ne fait rien.',
+ 'Ce qui compte, c\'est la relation entre elles.',
+ 'Amène une balle au contact de l\'autre.'],
+ build:function(c){
+  function mk(x,y,col){
+    var b=c.el('div','width:34px;height:34px;left:'+x+'px;top:'+y+'px;transform:translate(-50%,-50%);cursor:grab');
+    b.className='obj ball'; if(col) b.style.background=col;
+    c.scene.appendChild(b); return b;
+  }
+  var W=c.scene.clientWidth, a=mk(Math.round(W*0.15),120), b=mk(Math.round(W*0.75),260,'#fff');
+  var drag=null;
+  [a,b].forEach(function(n){ c.on(n,'pointerdown',function(e){ drag=n; e.preventDefault(); }); });
+  c.on(window,'pointerup',function(){ drag=null; });
+  c.on(window,'pointermove',function(e){
+    if(!drag) return;
+    var r=c.scene.getBoundingClientRect();
+    drag.style.left=Math.max(17,Math.min(r.width-17,e.clientX-r.left))+'px';
+    drag.style.top=Math.max(17,Math.min(r.height-17,e.clientY-r.top))+'px';
+    var d=Math.hypot(parseFloat(a.style.left)-parseFloat(b.style.left),parseFloat(a.style.top)-parseFloat(b.style.top));
+    if(d<36) c.win();
+  });
+ }});
+
+push({id:10,family:'Rupture',hints:[
+ 'Un des deux boutons ment sur ce qu\'il fait.',
+ 'Le libellé décrit l\'intention, pas l\'effet.',
+ 'Le bouton qui annonce la défaite est celui qui gagne.'],
+ build:function(c){
+  var row=c.el('div'); row.className='row';
+  var g=c.el('button',null,'Gagner'); g.className='btn';
+  var p=c.el('button',null,'Perdre'); p.className='btn';
+  row.appendChild(g); row.appendChild(p); c.scene.appendChild(row);
+  c.on(g,'click',function(){ c.miss(); });
+  c.on(p,'click',function(){ c.win(); });
+ }});
+
+push({id:11,family:'Environnement',hints:[
+ 'Rien dans le cadre ne réagit. Le cadre, lui, réagit.',
+ 'Le niveau surveille la taille de ce que tu regardes.',
+ 'Redimensionne la fenêtre du navigateur, ou change son zoom.'],
+ build:function(c){
+  var w=window.innerWidth,h=window.innerHeight,z=window.devicePixelRatio;
+  c.scene.appendChild(c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)',
+    w+' \u00d7 '+h));
+  c.every(function(){
+    if(Math.abs(window.innerWidth-w)>24||Math.abs(window.innerHeight-h)>24||Math.abs(window.devicePixelRatio-z)>0.05) c.win();
+  },250);
+ }});
+
+push({id:12,family:'Temps réel',hints:[
+ 'Le point bat au rythme d\'une horloge qui n\'est pas celle du jeu.',
+ 'Un instant précis revient une fois par minute.',
+ 'Appuie au moment où la minute change, quand les secondes passent à zéro.'],
+ build:function(c){
+  var col=c.el('div'); col.className='col';
+  var dot=c.el('div','width:16px;height:16px;border-radius:50%;background:var(--ink)');
+  var b=c.el('button',null,'Maintenant'); b.className='btn';
+  col.appendChild(dot); col.appendChild(b); c.scene.appendChild(col);
+  c.every(function(){
+    var ms=Date.now()%1000;
+    dot.style.opacity=ms<300?1:0.25;
+  },60);
+  c.on(b,'click',function(){
+    var d=new Date(), s=d.getSeconds(), ms=d.getMilliseconds();
+    if(s===0&&ms<800) c.win();
+    else if(s===59&&ms>400) c.win();
+    else c.miss();
+  });
+ }});
+
+push({id:13,family:'Navigation',hints:[
+ 'Cette barre accepte une adresse. Le jeu en a une.',
+ 'L\'adresse courante est affichée. Le but est ailleurs dans la même série.',
+ 'Saisis jeu://niveau/14 et valide.'],
+ build:function(c){
+  var col=c.el('div'); col.className='col';
+  var cur=c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','jeu://niveau/13');
+  var f=c.el('input'); f.className='field'; f.placeholder='';
+  var b=c.el('button',null,'Aller'); b.className='btn';
+  col.appendChild(cur); col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  function tryIt(){
+    var v=f.value.trim().toLowerCase();
+    if(v==='jeu://niveau/14') c.win(); else c.miss();
+  }
+  c.on(b,'click',tryIt);
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') tryIt(); });
+  c.after(function(){ f.focus(); },50);
+ }});
+
+push({id:14,family:'Texte',hints:[
+ 'Le mot affiché est lisible, mais pas dans le sens où tu le lis.',
+ 'Le champ attend le mot tel qu\'il devrait s\'écrire, pas tel qu\'il s\'affiche.',
+ 'L\'image est un miroir. Tape le mot dans le bon sens.'],
+ build:function(c){
+  var col=c.el('div'); col.className='col';
+  var w=c.el('div','font-family:JetBrains Mono,monospace;font-size:34px;transform:scaleX(-1)','protocole');
+  var f=c.el('input'); f.className='field';
+  var b=c.el('button',null,'Valider'); b.className='btn';
+  col.appendChild(w); col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  function tryIt(){
+    if(!f.value.trim()){ c.miss('Champ vide'); return; }
+    if(f.value.trim().toLowerCase()==='protocole') c.win(); else c.miss();
+  }
+  c.on(b,'click',tryIt);
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') tryIt(); });
+ }});
+
+push({id:15,family:'Hors-cadre',hints:[
+ 'La scène a l\'air vide. Elle ne l\'est pas.',
+ 'Du texte peut exister sans être visible.',
+ 'Sélectionne la zone vide à la souris pour révéler le mot, puis tape-le.'],
+ build:function(c){
+  var col=c.el('div','align-items:center'); col.className='col';
+  var hid=c.el('div','font-family:JetBrains Mono,monospace;font-size:20px;color:#FBFCFC;user-select:text','vestige');
+  var f=c.el('input'); f.className='field';
+  var b=c.el('button',null,'Valider'); b.className='btn';
+  col.appendChild(hid); col.appendChild(f); col.appendChild(b);
+  c.scene.style.userSelect='text';
+  c.scene.appendChild(col);
+  function tryIt(){
+    if(!f.value.trim()){ c.miss('Champ vide'); return; }
+    if(f.value.trim().toLowerCase()==='vestige') c.win(); else c.miss();
+  }
+  c.on(b,'click',tryIt);
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') tryIt(); });
+  return function(){ c.scene.style.userSelect='none'; };
+ }});
+</script>
+<script>
+push({id:16,family:'Mémoire',hints:[
+ 'Ce compteur n\'a pas de cible affichée. Tu en connais déjà une.',
+ 'Un nombre a déjà servi de solution plus tôt dans le protocole.',
+ 'La cible est sept, comme au niveau 5.'],
+ build:function(c){
+  var v=0;
+  var col=c.el('div'); col.className='col';
+  var n=c.el('div',null,'0'); n.className='big';
+  var row=c.el('div'); row.className='row';
+  var m=c.el('button',null,'\u2212'); m.className='btn';
+  var p=c.el('button',null,'+'); p.className='btn';
+  row.appendChild(m); row.appendChild(p);
+  col.appendChild(n); col.appendChild(row); c.scene.appendChild(col);
+  var t=null;
+  function render(){
+    n.textContent=v;
+    if(t){ clearTimeout(t); t=null; }
+    if(v===7) t=setTimeout(function(){ c.win(); },900);
+  }
+  c.on(m,'click',function(){ v=Math.max(0,v-1); render(); });
+  c.on(p,'click',function(){ v=Math.min(20,v+1); render(); });
+  return function(){ if(t) clearTimeout(t); };
+ }});
+
+push({id:17,family:'Auto-référence',winOnHint:true,hints:[
+ 'Le niveau n\'a rien à manipuler. Il observe ce que tu fais du jeu lui-même.'],
+ build:function(c){
+  c.scene.appendChild(c.el('div','color:var(--ink-soft);font-size:14px;text-align:center;max-width:320px',
+    'Rien ici ne réagit.'));
+  c.on(c.scene,'click',function(){ c.miss(); });
+ }});
+
+push({id:18,family:'Coût',hints:[
+ 'Accumuler est facile. Le niveau ne récompense pas l\'accumulation.',
+ 'Le second bouton détruit ce que le premier construit.',
+ 'Monte la réserve à dix au moins, puis renonce à tout.'],
+ build:function(c){
+  var v=0,peak=0;
+  var col=c.el('div'); col.className='col';
+  var n=c.el('div',null,'0'); n.className='big';
+  var row=c.el('div'); row.className='row';
+  var a=c.el('button',null,'Accumuler'); a.className='btn';
+  var r=c.el('button',null,'Renoncer'); r.className='btn';
+  row.appendChild(a); row.appendChild(r);
+  col.appendChild(n); col.appendChild(row); c.scene.appendChild(col);
+  c.on(a,'click',function(){ v++; peak=Math.max(peak,v); n.textContent=v; });
+  c.on(r,'click',function(){
+    if(peak>=10&&v>0){ v=0; n.textContent='0'; c.after(function(){ c.win(); },400); }
+    else { v=0; n.textContent='0'; c.miss('Pas assez à perdre'); }
+  });
+ }});
+
+push({id:19,family:'Précision',hints:[
+ 'Le couloir n\'est pas un décor.',
+ 'Sortir du couloir annule le trajet.',
+ 'Va du carré gauche au carré droit sans que le curseur quitte le couloir.'],
+ build:function(c){
+  var lane=c.el('div','position:absolute;left:60px;right:60px;top:50%;transform:translateY(-50%);height:26px;border:1px solid var(--ink);background:#fff');
+  var A=c.el('div','position:absolute;left:60px;top:50%;transform:translateY(-50%);width:26px;height:26px;background:var(--signal)');
+  var B=c.el('div','position:absolute;right:60px;top:50%;transform:translateY(-50%);width:26px;height:26px;background:var(--ink)');
+  c.scene.appendChild(lane); c.scene.appendChild(A); c.scene.appendChild(B);
+  var armed=false;
+  c.on(A,'pointerenter',function(){ armed=true; lane.style.background='#FFFCEB'; });
+  c.on(B,'pointerenter',function(){ if(armed) c.win(); });
+  c.on(c.scene,'pointermove',function(e){
+    var lr=lane.getBoundingClientRect();
+    var inside=e.clientX>=lr.left&&e.clientX<=lr.right&&e.clientY>=lr.top&&e.clientY<=lr.bottom;
+    if(!inside&&armed){ armed=false; lane.style.background='#fff'; c.miss('Sorti'); }
+  });
+ }});
+
+push({id:20,family:'Refus',hints:[
+ 'Pour la première fois une consigne est écrite. Rien ne dit qu\'elle est vraie.',
+ 'Obéir remet le niveau à zéro.',
+ 'N\'appuie pas sur le carré vert. Appuie ailleurs.'],
+ build:function(c){
+  var col=c.el('div'); col.className='col';
+  var t=c.el('div','font-size:15px','Appuyez sur le carré vert.');
+  var row=c.el('div'); row.className='row';
+  var g=c.el('div','width:56px;height:56px;background:#2F7D63;cursor:pointer');
+  var o=c.el('div','width:56px;height:56px;background:var(--rule);cursor:pointer');
+  row.appendChild(g); row.appendChild(o);
+  col.appendChild(t); col.appendChild(row); c.scene.appendChild(col);
+  c.on(g,'click',function(){ c.miss(); });
+  c.on(o,'click',function(){ c.win(); });
+ }});
+
+push({id:21,family:'Pointeur',hints:[
+ 'Le clic gauche ne produit rien. Ce n\'est pas le seul clic.',
+ 'Ta souris a plus d\'un bouton.',
+ 'Fais un clic droit sur la forme.'],
+ build:function(c){
+  var d=c.el('div','width:90px;height:90px;background:var(--ink);cursor:pointer');
+  c.scene.appendChild(d);
+  c.on(d,'click',function(){ c.miss(); });
+  c.on(d,'contextmenu',function(e){ e.preventDefault(); c.win(); });
+ }});
+
+push({id:22,family:'Permissions',hints:[
+ 'Cette boîte imite une demande d\'autorisation. Elle n\'en fait aucune.',
+ 'Accepter n\'ouvre rien et ne valide rien.',
+ 'Refuse.'],
+ build:function(c){
+  var box=c.el('div','width:340px;border:1px solid var(--ink);background:#fff;padding:16px');
+  box.appendChild(c.el('div','font-size:14px;margin-bottom:4px','Ce niveau souhaite accéder au micro'));
+  box.appendChild(c.el('div','font-size:12px;color:var(--ink-soft);margin-bottom:14px','Simulation interne au jeu. Aucun matériel n\'est sollicité.'));
+  var row=c.el('div','display:flex;gap:10px;justify-content:flex-end');
+  var y=c.el('button',null,'Autoriser'); y.className='btn';
+  var n=c.el('button',null,'Refuser'); n.className='btn';
+  row.appendChild(n); row.appendChild(y); box.appendChild(row);
+  c.scene.appendChild(box);
+  c.on(y,'click',function(){ c.miss(); });
+  c.on(n,'click',function(){ c.win(); });
+ }});
+
+push({id:23,family:'Deux mains',hints:[
+ 'Les deux interrupteurs doivent être actifs en même temps.',
+ 'Relâcher l\'un éteint l\'un. Il faut donc ne pas relâcher.',
+ 'Maintiens le gauche enfoncé et appuie sur le droit avec la touche Entrée.'],
+ build:function(c){
+  var row=c.el('div'); row.className='row';
+  var L=c.el('div','width:110px;height:110px;border:1px solid var(--ink);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ink-soft)','maintenir');
+  var R=c.el('div','width:110px;height:110px;border:1px solid var(--ink);background:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ink-soft)','entrée');
+  row.appendChild(L); row.appendChild(R); c.scene.appendChild(row);
+  var held=false;
+  c.on(L,'pointerdown',function(e){ held=true; L.style.background='var(--signal)'; e.preventDefault(); });
+  c.on(window,'pointerup',function(){ held=false; L.style.background='#fff'; });
+  c.on(window,'keydown',function(e){
+    if(e.key!=='Enter') return;
+    if(held){ R.style.background='var(--signal)'; c.win(); } else c.miss();
+  });
+ }});
+
+push({id:24,family:'Probabiliste',hints:[
+ 'Les trois portes ne se valent pas, mais aucune n\'est sûre.',
+ 'Une porte réussit bien plus souvent que les autres. Il faut l\'identifier par essais.',
+ 'Enchaîne trois réussites de suite sur la porte la plus fiable, la deuxième.'],
+ build:function(c){
+  var p=[0.18,0.82,0.25], streak=0;
+  var col=c.el('div'); col.className='col';
+  var s=c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','\u25cb \u25cb \u25cb');
+  var row=c.el('div'); row.className='row';
+  p.forEach(function(pr,i){
+    var d=c.el('button',null,String(i+1)); d.className='btn'; d.style.cssText+='width:72px;height:96px;font-size:18px';
+    c.on(d,'click',function(){
+      if(Math.random()<pr){
+        streak++; d.style.background='var(--signal)';
+        s.textContent=['\u25cf','\u25cf','\u25cf'].slice(0,streak).concat(['\u25cb','\u25cb','\u25cb'].slice(0,3-streak)).join(' ');
+        if(streak>=3) c.win();
+      } else {
+        streak=0; s.textContent='\u25cb \u25cb \u25cb'; d.style.background='#fff'; c.miss('Échec');
+      }
+      c.after(function(){ d.style.background='#fff'; },250);
+    });
+    row.appendChild(d);
+  });
+  col.appendChild(s); col.appendChild(row); c.scene.appendChild(col);
+ }});
+
+push({id:25,family:'Destruction',hints:[
+ 'Chaque forme disparaît au clic. Rien ne dit qu\'il faut en garder.',
+ 'Le niveau juge ce qui reste.',
+ 'Vide entièrement la scène.'],
+ build:function(c){
+  var left=14;
+  for(var i=0;i<14;i++){
+    var x=30+Math.random()*(c.scene.clientWidth-90), y=30+Math.random()*(c.scene.clientHeight-90);
+    var d=c.el('div','position:absolute;left:'+x+'px;top:'+y+'px;width:26px;height:26px;background:var(--ink);cursor:pointer');
+    c.scene.appendChild(d);
+    (function(d){ c.on(d,'click',function(){ d.remove(); left--; if(left===0) c.win(); }); })(d);
+  }
+ }});
+
+push({id:26,family:'Rythme',hints:[
+ 'Le nombre de frappes ne suffit pas. Leur espacement compte.',
+ 'Il faut cinq frappes séparées par des intervalles identiques.',
+ 'Bats un tempo régulier, cinq fois, ni trop vite ni trop lent.'],
+ build:function(c){
+  var times=[];
+  var col=c.el('div'); col.className='col';
+  var pad=c.el('div','width:150px;height:150px;border:1px solid var(--ink);background:#fff;cursor:pointer');
+  var s=c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','0 / 5');
+  col.appendChild(pad); col.appendChild(s); c.scene.appendChild(col);
+  c.on(pad,'pointerdown',function(){
+    var n=Date.now();
+    if(times.length&&n-times[times.length-1]>2200) times=[];
+    times.push(n);
+    pad.style.background='var(--signal)';
+    c.after(function(){ pad.style.background='#fff'; },110);
+    if(times.length>5) times=times.slice(-5);
+    s.textContent=times.length+' / 5';
+    if(times.length===5){
+      var g=[];
+      for(var i=1;i<5;i++) g.push(times[i]-times[i-1]);
+      var avg=g.reduce(function(a,b){return a+b;},0)/4;
+      var ok=avg>=280&&avg<=1300&&g.every(function(x){ return Math.abs(x-avg)/avg<=0.14; });
+      if(ok) c.win(); else { times=[]; s.textContent='0 / 5'; c.miss('Irrégulier'); }
+    }
+  });
+ }});
+
+push({id:27,family:'Persistance',hints:[
+ 'Ce niveau ne se joue pas en une seule fois.',
+ 'Le jeu se souvient de tes passages, même après avoir fermé la page.',
+ 'Ouvre la liste des niveaux, quitte celui-ci, puis reviens.'],
+ build:function(c){
+  var n=c.visits;
+  c.scene.appendChild(c.el('div','font-family:JetBrains Mono,monospace;font-size:40px','\u00d7'+n));
+  if(n>=2){ c.after(function(){ c.win(); },900); return; }
+  c.on(c.scene,'click',function(){ c.miss(); });
+ }});
+
+push({id:28,family:'Localisation',hints:[
+ 'La réponse ne se trouve pas dans le jeu mais dans ton navigateur.',
+ 'Le champ attend un code de langue à deux lettres.',
+ 'Tape le code de la langue de ton navigateur, par exemple fr.'],
+ build:function(c){
+  var col=c.el('div'); col.className='col';
+  var f=c.el('input'); f.className='field'; f.style.width='120px'; f.style.textAlign='center';
+  var b=c.el('button',null,'Valider'); b.className='btn';
+  col.appendChild(c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','?? '));
+  col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  var lang=(navigator.language||'en').slice(0,2).toLowerCase();
+  function tryIt(){
+    if(!f.value.trim()){ c.miss('Champ vide'); return; }
+    if(f.value.trim().toLowerCase()===lang) c.win(); else c.miss();
+  }
+  c.on(b,'click',tryIt);
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') tryIt(); });
+ }});
+
+push({id:29,family:'Accessibilité',hints:[
+ 'La souris ne sert à rien ici.',
+ 'Les cinq cases se parcourent au clavier, dans l\'ordre.',
+ 'Tabule jusqu\'à la quatrième case et valide avec Entrée.'],
+ build:function(c){
+  var row=c.el('div'); row.className='row';
+  for(var i=0;i<5;i++){
+    var d=c.el('div','width:62px;height:62px;border:1px solid var(--rule);background:#fff');
+    d.tabIndex=0; d.dataset.i=i;
+    d.style.outlineOffset='3px';
+    (function(d,i){
+      c.on(d,'focus',function(){ d.style.borderColor='var(--ink)'; });
+      c.on(d,'blur',function(){ d.style.borderColor='var(--rule)'; });
+      c.on(d,'keydown',function(e){ if(e.key==='Enter'){ i===3?c.win():c.miss(); } });
+      c.on(d,'click',function(){ c.miss('Pas la souris'); });
+    })(d,i);
+    row.appendChild(d);
+  }
+  c.scene.appendChild(row);
+ }});
+
+push({id:30,family:'Chrome',hints:[
+ 'Le cadre du jeu s\'est agrandi vers le haut.',
+ 'Le titre au-dessus change. Il finit par tout dire.',
+ 'Lis le titre lettre par lettre, il épelle le mot à saisir.'],
+ build:function(c){
+  var word='signal', i=0;
+  c.setChrome('_');
+  c.every(function(){
+    i=(i+1)%(word.length+3);
+    c.setChrome(i<=word.length?word.slice(0,i)||'_':word);
+  },700);
+  var col=c.el('div'); col.className='col';
+  var f=c.el('input'); f.className='field';
+  var b=c.el('button',null,'Valider'); b.className='btn';
+  col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  function tryIt(){
+    if(!f.value.trim()){ c.miss('Champ vide'); return; }
+    if(f.value.trim().toLowerCase()===word) c.win(); else c.miss();
+  }
+  c.on(b,'click',tryIt);
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') tryIt(); });
+ }});
+
+</script>
+<script>
+function mkCol(c){ var d=c.el('div'); d.className='col'; return d; }
+function mkRow(c){ var d=c.el('div'); d.className='row'; return d; }
+function mkBtn(c,t){ var b=c.el('button',null,t); b.className='btn'; return b; }
+function mkGrid(c,n,size,gap){
+  var g=c.el('div','display:grid;grid-template-columns:repeat('+n+','+size+'px);grid-template-rows:repeat('+n+','+size+'px);gap:'+(gap||5)+'px');
+  var cells=[];
+  for(var i=0;i<n*n;i++){
+    var d=c.el('div','background:#fff;border:1px solid var(--ink);cursor:pointer');
+    d.dataset.s='0'; cells.push(d); g.appendChild(d);
+  }
+  return {node:g,cells:cells,
+    set:function(i,v){ cells[i].dataset.s=v?'1':'0'; cells[i].style.background=v?'var(--ink)':'#fff'; },
+    get:function(i){ return cells[i].dataset.s==='1'; },
+    state:function(){ return cells.map(function(x){ return x.dataset.s==='1'; }); }};
+}
+function mkGauge(c,w,period,opt){
+  opt=opt||{};
+  var track=c.el('div','width:'+w+'px;max-width:calc(100vw - 72px);height:12px;border:1px solid var(--ink);background:#fff');
+  var fill=c.el('div','height:100%;width:0%;background:var(--signal)');
+  track.appendChild(fill);
+  var v=opt.start||0,dir=1,last=Date.now(),raf,live=true,hold=0,dwell=opt.dwell||0;
+  function tick(){
+    if(!live) return;
+    var n=Date.now(), dt=n-last; last=n;
+    if(hold>0) hold-=dt;
+    else {
+      v+=dir*(dt/period)*100;
+      if(v>=100){v=100;dir=-1;hold=dwell;} if(v<=0){v=0;dir=1;hold=dwell;}
+    }
+    fill.style.width=v.toFixed(1)+'%'; raf=requestAnimationFrame(tick);
+  }
+  raf=requestAnimationFrame(tick);
+  return {node:track,fill:fill,val:function(){return v;},dir:function(){return dir;},
+    stop:function(){ live=false; cancelAnimationFrame(raf); }};
+}
+
+push({id:31,family:'Timing',hints:[
+ 'La cible n\'est plus au centre.',
+ 'La jauge s\'arrête un instant à chacune de ses extrémités.',
+ 'Arrête-la pleine, à cent pour cent.'],
+ build:function(c){
+  var col=mkCol(c), g=mkGauge(c,420,2400,{dwell:200}), b=mkBtn(c,'Arrêter');
+  col.appendChild(g.node); col.appendChild(b); c.scene.appendChild(col);
+  c.on(b,'click',function(){ if(g.val()>=97) { g.stop(); c.win(); } else c.miss(); });
+  return g.stop;
+ }});
+
+push({id:32,family:'Timing',hints:[
+ 'La jauge existe encore après avoir disparu.',
+ 'Elle garde la même vitesse. Compte.',
+ 'Arrête-la au milieu, de mémoire, sans la voir.'],
+ build:function(c){
+  var col=mkCol(c), g=mkGauge(c,420,3000), b=mkBtn(c,'Arrêter');
+  col.appendChild(g.node); col.appendChild(b); c.scene.appendChild(col);
+  c.after(function(){ g.fill.style.visibility='hidden'; },2200);
+  c.on(b,'click',function(){ if(g.val()>=42&&g.val()<=58){ g.stop(); c.win(); } else c.miss(); });
+  return g.stop;
+ }});
+
+push({id:33,family:'Timing',hints:[
+ 'Deux jauges, une seule commande.',
+ 'Leurs valeurs ne comptent pas séparément.',
+ 'Arrête quand les deux sont à la même hauteur.'],
+ build:function(c){
+  var col=mkCol(c), a=mkGauge(c,380,2200), b=mkGauge(c,380,3100,{start:60}), btn=mkBtn(c,'Arrêter');
+  col.appendChild(a.node); col.appendChild(b.node); col.appendChild(btn); c.scene.appendChild(col);
+  c.on(btn,'click',function(){
+    if(Math.abs(a.val()-b.val())<=4){ a.stop(); b.stop(); c.win(); } else c.miss();
+  });
+  return function(){ a.stop(); b.stop(); };
+ }});
+
+push({id:34,family:'Timing',hints:[
+ 'Le point va et vient. La ligne ne bouge pas.',
+ 'Le clic est jugé sur la position du point.',
+ 'Clique quand le point croise la ligne.'],
+ build:function(c){
+  var line=c.el('div','position:absolute;left:50%;top:60px;bottom:60px;width:1px;background:var(--ink)');
+  var dot=c.el('div','position:absolute;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;background:var(--signal);border:1px solid var(--ink)');
+  c.scene.appendChild(line); c.scene.appendChild(dot);
+  var x=40,dir=1,last=Date.now(),raf;
+  function tick(){
+    var n=Date.now(),w=c.scene.clientWidth; x+=dir*((n-last)/1500)*(w-80); last=n;
+    if(x>w-60){x=w-60;dir=-1;} if(x<40){x=40;dir=1;}
+    dot.style.left=x+'px'; raf=requestAnimationFrame(tick);
+  }
+  raf=requestAnimationFrame(tick);
+  c.on(c.scene,'click',function(){
+    if(Math.abs(x+9-c.scene.clientWidth/2)<14){ cancelAnimationFrame(raf); c.win(); } else c.miss();
+  });
+  return function(){ cancelAnimationFrame(raf); };
+ }});
+
+push({id:35,family:'Timing',hints:[
+ 'Chaque tentative rend la suivante plus difficile.',
+ 'La zone acceptée rétrécit à chaque échec. Elle ne revient jamais.',
+ 'Vise le centre dès le premier essai.'],
+ build:function(c){
+  var tol=22;
+  var col=mkCol(c), g=mkGauge(c,420,2600), b=mkBtn(c,'Arrêter');
+  var zone=c.el('div','position:relative;width:420px;max-width:calc(100vw - 72px);height:6px;background:var(--rule)');
+  var band=c.el('div','position:absolute;top:0;bottom:0;background:var(--signal)');
+  zone.appendChild(band);
+  function paint(){ band.style.left=(50-tol/2)+'%'; band.style.width=tol+'%'; }
+  paint();
+  col.appendChild(g.node); col.appendChild(zone); col.appendChild(b); c.scene.appendChild(col);
+  c.on(b,'click',function(){
+    if(Math.abs(g.val()-50)<=tol/2){ g.stop(); c.win(); }
+    else { tol=Math.max(5,tol-4); paint(); c.miss(); }
+  });
+  return g.stop;
+ }});
+
+push({id:36,family:'Timing',hints:[
+ 'Le carré alterne entre deux états. Un seul est le bon.',
+ 'L\'état le plus court est le plus rare.',
+ 'Clique uniquement pendant la phase claire, qui ne dure qu\'un instant.'],
+ build:function(c){
+  var d=c.el('div','width:120px;height:120px;background:var(--ink);cursor:pointer');
+  c.scene.appendChild(d);
+  var open=false;
+  function cycle(){
+    open=false; d.style.background='var(--ink)';
+    c.after(function(){
+      open=true; d.style.background='var(--signal)';
+      c.after(function(){ open=false; d.style.background='var(--ink)'; c.after(cycle,10); },380);
+    },1800+Math.random()*1200);
+  }
+  cycle();
+  c.on(d,'click',function(){ if(open) c.win(); else c.miss(); });
+ }});
+
+push({id:37,family:'Timing',hints:[
+ 'Un seul clic ne suffit jamais.',
+ 'Ce qui est mesuré, c\'est l\'écart entre deux clics.',
+ 'Clique deux fois avec exactement une seconde d\'écart.'],
+ build:function(c){
+  var col=mkCol(c);
+  var pad=c.el('div','width:160px;height:160px;border:1px solid var(--ink);background:#fff;cursor:pointer');
+  var s=c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','\u2014');
+  col.appendChild(pad); col.appendChild(s); c.scene.appendChild(col);
+  var t0=0;
+  c.on(pad,'pointerdown',function(){
+    var n=Date.now();
+    if(!t0||n-t0>3000){ t0=n; s.textContent='\u2026'; pad.style.background='var(--signal)';
+      c.after(function(){ pad.style.background='#fff'; },100); return; }
+    var d=n-t0; t0=0; s.textContent=d+' ms';
+    if(Math.abs(d-1000)<=90) c.win(); else c.miss();
+  });
+ }});
+
+push({id:38,family:'Timing',hints:[
+ 'Le point disparaît mais ne s\'arrête pas.',
+ 'Sa vitesse est constante sous le cache.',
+ 'Clique à l\'instant où il devrait atteindre le repère, sans le voir.'],
+ build:function(c){
+  var mask=c.el('div','position:absolute;left:45%;right:0;top:0;bottom:0;background:#FBFCFC;border-left:1px dashed var(--rule)');
+  var mark=c.el('div','position:absolute;right:70px;top:40px;bottom:40px;width:2px;background:var(--ink);z-index:3');
+  var dot=c.el('div','position:absolute;top:50%;left:20px;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;background:var(--signal);border:1px solid var(--ink)');
+  c.scene.appendChild(dot); c.scene.appendChild(mask); c.scene.appendChild(mark);
+  var x=20,last=Date.now(),raf,target;
+  function run(){
+    var n=Date.now(),w=c.scene.clientWidth; x+=((n-last)/2200)*w; last=n;
+    if(x>w+40){ x=20; }
+    dot.style.left=x+'px'; raf=requestAnimationFrame(run);
+  }
+  raf=requestAnimationFrame(run);
+  c.on(c.scene,'click',function(){
+    var w=c.scene.clientWidth; target=w-70;
+    if(Math.abs(x+9-target)<26){ cancelAnimationFrame(raf); c.win(); } else c.miss();
+  });
+  return function(){ cancelAnimationFrame(raf); };
+ }});
+
+push({id:39,family:'Séquence',hints:[
+ 'Les formes s\'allument une par une. Reproduire n\'est pas copier.',
+ 'L\'ordre attendu n\'est pas celui que tu as vu.',
+ 'Clique-les dans l\'ordre inverse de leur allumage.'],
+ build:function(c){
+  var row=mkRow(c), n=4, nodes=[], seq=[0,1,2,3];
+  for(var i=0;i<n;i++){
+    var d=c.el('div','width:56px;height:56px;background:var(--ink);cursor:pointer'); nodes.push(d); row.appendChild(d);
+  }
+  c.scene.appendChild(row);
+  var step=0, ready=false;
+  seq.forEach(function(i,k){
+    c.after(function(){
+      nodes[i].style.background='var(--signal)';
+      c.after(function(){ nodes[i].style.background='var(--ink)'; if(k===n-1) ready=true; },380);
+    },500+k*600);
+  });
+  nodes.forEach(function(d,i){
+    c.on(d,'click',function(){
+      if(!ready) return;
+      if(seq[n-1-step]===i){ step++; d.style.background='var(--signal)';
+        if(step===n) c.win();
+      } else { step=0; nodes.forEach(function(x){x.style.background='var(--ink)';}); c.miss(); }
+    });
+  });
+ }});
+
+push({id:40,family:'Séquence',hints:[
+ 'Le jeu montre, puis se tait.',
+ 'Reproduis exactement ce qui a été montré, dans le même ordre.',
+ 'Cinq allumages, cinq clics, même ordre. Regarde à nouveau si besoin.'],
+ build:function(c){
+  var row=mkRow(c), nodes=[], seq=[2,0,3,1,2];
+  for(var i=0;i<4;i++){ var d=c.el('div','width:62px;height:62px;background:var(--ink);cursor:pointer'); nodes.push(d); row.appendChild(d); }
+  var col=mkCol(c); col.appendChild(row);
+  var again=mkBtn(c,'Revoir'); col.appendChild(again);
+  c.scene.appendChild(col);
+  var step=0, ready=false, run=0;
+  function play(){
+    ready=false; step=0;
+    var me=++run;
+    nodes.forEach(function(x){ x.style.background='var(--ink)'; });
+    seq.forEach(function(i,k){
+      c.after(function(){
+        if(me!==run) return;
+        nodes[i].style.background='var(--signal)';
+        c.after(function(){ if(me!==run) return; nodes[i].style.background='var(--ink)'; if(k===seq.length-1) ready=true; },300);
+      },400+k*520);
+    });
+  }
+  play();
+  c.on(again,'click',play);
+  nodes.forEach(function(d,i){
+    c.on(d,'click',function(){
+      if(!ready) return;
+      if(seq[step]===i){ step++; if(step===seq.length) c.win(); }
+      else { step=0; c.miss(); }
+    });
+  });
+ }});
+
+push({id:41,family:'Séquence',hints:[
+ 'Chaque forme porte une lettre.',
+ 'Les lettres ne sont pas disposées dans l\'ordre.',
+ 'Clique-les dans l\'ordre alphabétique.'],
+ build:function(c){
+  var letters=['m','c','r','a','h'], order=letters.slice().sort();
+  var row=mkRow(c), step=0, nodes=[];
+  letters.forEach(function(L){
+    var d=c.el('div','width:56px;height:56px;border:1px solid var(--ink);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:JetBrains Mono,monospace;font-size:20px',L);
+    nodes.push(d); row.appendChild(d);
+    c.on(d,'click',function(){
+      if(order[step]===L){ step++; d.style.background='var(--signal)'; if(step===order.length) c.win(); }
+      else { step=0; nodes.forEach(function(x){x.style.background='#fff';}); c.miss(); }
+    });
+  });
+  c.scene.appendChild(row);
+ }});
+
+push({id:42,family:'Séquence',hints:[
+ 'Les formes diffèrent par autre chose que leur taille.',
+ 'Compte leurs côtés.',
+ 'Du triangle à l\'hexagone, par nombre de côtés croissant.'],
+ build:function(c){
+  var polys=[{n:5,p:'50,3 97,38 79,95 21,95 3,38'},{n:3,p:'50,6 96,94 4,94'},{n:6,p:'25,5 75,5 98,50 75,95 25,95 2,50'},{n:4,p:'6,6 94,6 94,94 6,94'}];
+  var order=polys.map(function(x){return x.n;}).sort(function(a,b){return a-b;});
+  var row=mkRow(c), step=0, nodes=[];
+  polys.forEach(function(o){
+    var w=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    w.setAttribute('viewBox','0 0 100 100'); w.setAttribute('width','62'); w.setAttribute('height','62');
+    w.style.cursor='pointer';
+    var p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    p.setAttribute('points',o.p); p.setAttribute('fill','#14181B');
+    w.appendChild(p); row.appendChild(w); nodes.push(p);
+    c.on(w,'click',function(){
+      if(order[step]===o.n){ step++; p.setAttribute('fill','#E8C21C'); if(step===4) c.win(); }
+      else { step=0; nodes.forEach(function(x){x.setAttribute('fill','#14181B');}); c.miss(); }
+    });
+  });
+  c.scene.appendChild(row);
+ }});
+
+push({id:43,family:'Séquence',hints:[
+ 'Ces nombres ne sont pas des quantités.',
+ 'Ce sont des années.',
+ 'Clique de la plus ancienne à la plus récente.'],
+ build:function(c){
+  var years=[1969,1848,1991,1789,1945];
+  var order=years.slice().sort(function(a,b){return a-b;});
+  var row=mkRow(c), step=0, nodes=[];
+  years.forEach(function(y){
+    var d=c.el('div','padding:14px 12px;border:1px solid var(--ink);background:#fff;cursor:pointer;font-family:JetBrains Mono,monospace;font-size:15px',String(y));
+    nodes.push(d); row.appendChild(d);
+    c.on(d,'click',function(){
+      if(order[step]===y){ step++; d.style.background='var(--signal)'; if(step===5) c.win(); }
+      else { step=0; nodes.forEach(function(x){x.style.background='#fff';}); c.miss(); }
+    });
+  });
+  c.scene.appendChild(row);
+ }});
+
+push({id:44,family:'Séquence',hints:[
+ 'Six cases, mais la séquence en compte cinq.',
+ 'Une case doit rester intacte.',
+ 'Parcours-les de gauche à droite en sautant la case creuse.'],
+ build:function(c){
+  var row=mkRow(c), skip=3, step=0, nodes=[], order=[];
+  for(var i=0;i<6;i++) if(i!==skip) order.push(i);
+  for(var i=0;i<6;i++){
+    var filled=(i!==skip);
+    var d=c.el('div','width:52px;height:52px;cursor:pointer;border:1px solid var(--ink);background:'+(filled?'var(--ink)':'#fff'));
+    nodes.push(d); row.appendChild(d);
+    (function(d,i){
+      c.on(d,'click',function(){
+        if(order[step]===i){ step++; d.style.background='var(--signal)'; if(step===order.length) c.win(); }
+        else { step=0; nodes.forEach(function(x,k){ x.style.background=(k!==skip)?'var(--ink)':'#fff'; }); c.miss(); }
+      });
+    })(d,i);
+  }
+  c.scene.appendChild(row);
+ }});
+
+push({id:45,family:'Séquence',hints:[
+ 'Les nombres montent, mais tous ne sont pas attendus.',
+ 'La moitié d\'entre eux doit être ignorée.',
+ 'Clique les nombres impairs dans l\'ordre croissant.'],
+ build:function(c){
+  var vals=[4,7,1,8,3,6,5,2];
+  var order=vals.filter(function(v){return v%2===1;}).sort(function(a,b){return a-b;});
+  var g=c.el('div','display:grid;grid-template-columns:repeat(4,64px);gap:6px');
+  var step=0, nodes=[];
+  vals.forEach(function(v){
+    var d=c.el('div','height:64px;border:1px solid var(--ink);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:JetBrains Mono,monospace;font-size:20px',String(v));
+    nodes.push(d); g.appendChild(d);
+    c.on(d,'click',function(){
+      if(order[step]===v){ step++; d.style.background='var(--signal)'; if(step===order.length) c.win(); }
+      else { step=0; nodes.forEach(function(x){x.style.background='#fff';}); c.miss(); }
+    });
+  });
+  c.scene.appendChild(g);
+ }});
+
+push({id:46,family:'Séquence',hints:[
+ 'Trois cases, mais plus de trois clics.',
+ 'La séquence attendue se répète.',
+ 'Fais gauche, droite, gauche, droite, puis centre.'],
+ build:function(c){
+  var row=mkRow(c), nodes=[], seq=[0,2,0,2,1], step=0;
+  for(var i=0;i<3;i++){ var d=c.el('div','width:72px;height:72px;background:var(--ink);cursor:pointer'); nodes.push(d); row.appendChild(d); }
+  c.scene.appendChild(row);
+  nodes.forEach(function(d,i){
+    c.on(d,'click',function(){
+      if(seq[step]===i){ step++;
+        d.style.background='var(--signal)';
+        c.after(function(){ d.style.background='var(--ink)'; },160);
+        if(step===seq.length) c.win();
+      } else { step=0; c.miss(); }
+    });
+  });
+ }});
+
+push({id:47,family:'Motif',hints:[
+ 'La grille est plus grande. La règle reste géométrique.',
+ 'Une seule ligne traverse la grille de coin à coin.',
+ 'Allume la diagonale, du haut gauche au bas droit.'],
+ build:function(c){
+  var G=mkGrid(c,4,52);
+  c.scene.appendChild(G.node);
+  G.cells.forEach(function(d,i){
+    c.on(d,'click',function(){
+      G.set(i,!G.get(i));
+      var ok=true;
+      for(var k=0;k<16;k++){ var diag=(Math.floor(k/4)===k%4); if(G.get(k)!==diag) ok=false; }
+      if(ok) c.win();
+    });
+  });
+ }});
+
+push({id:48,family:'Motif',hints:[
+ 'La moitié gauche est figée. La moitié droite ne l\'est pas.',
+ 'Les deux moitiés doivent se répondre.',
+ 'Reproduis la gauche en miroir sur la droite.'],
+ build:function(c){
+  var G=mkGrid(c,4,52);
+  var left=[1,0,1,0, 0,1,1,0, 1,1,0,0, 0,0,1,1];
+  c.scene.appendChild(G.node);
+  for(var r=0;r<4;r++) for(var k=0;k<2;k++){
+    var i=r*4+k; G.set(i,left[i]); G.cells[i].style.cursor='default'; G.cells[i].dataset.lock='1';
+  }
+  G.cells.forEach(function(d,i){
+    if(d.dataset.lock) return;
+    c.on(d,'click',function(){
+      G.set(i,!G.get(i));
+      var ok=true;
+      for(var r=0;r<4;r++) for(var k=0;k<2;k++){
+        if(G.get(r*4+k)!==G.get(r*4+3-k)) ok=false;
+      }
+      if(ok) c.win();
+    });
+  });
+ }});
+
+push({id:49,family:'Motif',hints:[
+ 'Presque tout doit être allumé.',
+ 'Quatre cases doivent rester éteintes, et elles sont symétriques.',
+ 'Allume tout sauf les quatre coins.'],
+ build:function(c){
+  var G=mkGrid(c,4,52);
+  c.scene.appendChild(G.node);
+  var corners=[0,3,12,15];
+  G.cells.forEach(function(d,i){
+    c.on(d,'click',function(){
+      G.set(i,!G.get(i));
+      var ok=true;
+      for(var k=0;k<16;k++){ var want=corners.indexOf(k)<0; if(G.get(k)!==want) ok=false; }
+      if(ok) c.win();
+    });
+  });
+ }});
+
+push({id:50,family:'Motif',hints:[
+ 'Le modèle ne reste pas affiché.',
+ 'Il faut le mémoriser avant qu\'il ne s\'efface.',
+ 'Reproduis exactement les cases montrées au départ. Le bouton les remontre.'],
+ build:function(c){
+  var G=mkGrid(c,4,52);
+  var target=[0,5,6,9,11,14];
+  var col=mkCol(c); col.appendChild(G.node);
+  var again=mkBtn(c,'Revoir'); col.appendChild(again);
+  c.scene.appendChild(col);
+  var locked=true, run=0;
+  function show(){
+    locked=true;
+    var me=++run;
+    target.forEach(function(i){ G.set(i,true); });
+    c.after(function(){ if(me!==run) return; target.forEach(function(i){ G.set(i,false); }); locked=false; },1800);
+  }
+  show();
+  c.on(again,'click',function(){ for(var k=0;k<16;k++) G.set(k,false); show(); });
+  G.cells.forEach(function(d,i){
+    c.on(d,'click',function(){
+      if(locked) return;
+      G.set(i,!G.get(i));
+      var ok=true;
+      for(var k=0;k<16;k++){ if(G.get(k)!==(target.indexOf(k)>=0)) ok=false; }
+      if(ok) c.win();
+    });
+  });
+ }});
+</script>
+<script>
+push({id:51,family:'Motif',hints:[
+ 'Cliquer une case n\'agit pas que sur elle.',
+ 'Les voisines directes basculent aussi.',
+ 'Éteins toute la grille.'],
+ build:function(c){
+  var G=mkGrid(c,3,58);
+  c.scene.appendChild(G.node);
+  var init=[0,4,7];
+  function toggle(i){ G.set(i,!G.get(i)); }
+  function press(i,silent){
+    var r=Math.floor(i/3), k=i%3;
+    toggle(i);
+    if(r>0) toggle(i-3); if(r<2) toggle(i+3);
+    if(k>0) toggle(i-1); if(k<2) toggle(i+1);
+    if(silent) return;
+    if(G.state().every(function(x){ return !x; })) c.win();
+  }
+  init.forEach(function(i){ press(i,true); });
+  G.cells.forEach(function(d,i){ c.on(d,'click',function(){ press(i); }); });
+ }});
+
+push({id:52,family:'Motif',hints:[
+ 'Les colonnes se règlent une par une.',
+ 'Aucune valeur précise n\'est demandée, seulement une progression.',
+ 'Fais un escalier : chaque colonne d\'un cran au-dessus de la précédente.'],
+ build:function(c){
+  var v=[3,3,3,3,3], row=mkRow(c), bars=[];
+  v.forEach(function(x,i){
+    var col=mkCol(c); col.style.gap='8px';
+    var wrap=c.el('div','height:160px;width:34px;display:flex;align-items:flex-end');
+    var bar=c.el('div','width:100%;background:var(--signal);border:1px solid var(--ink)');
+    wrap.appendChild(bar); bars.push(bar);
+    var ctr=mkRow(c); ctr.style.gap='4px';
+    var m=mkBtn(c,'\u2212'); m.style.cssText+=';padding:2px 6px;font-size:12px';
+    var p=mkBtn(c,'+'); p.style.cssText+=';padding:2px 6px;font-size:12px';
+    ctr.appendChild(m); ctr.appendChild(p);
+    col.appendChild(wrap); col.appendChild(ctr); row.appendChild(col);
+    c.on(m,'click',function(){ v[i]=Math.max(1,v[i]-1); render(); });
+    c.on(p,'click',function(){ v[i]=Math.min(8,v[i]+1); render(); });
+  });
+  c.scene.appendChild(row);
+  var t=null;
+  function render(){
+    v.forEach(function(x,i){ bars[i].style.height=(x*18)+'px'; });
+    var ok=true;
+    for(var i=1;i<5;i++) if(v[i]!==v[i-1]+1) ok=false;
+    if(t){ clearTimeout(t); t=null; }
+    if(ok) t=setTimeout(function(){ c.win(); },700);
+  }
+  render();
+  return function(){ if(t) clearTimeout(t); };
+ }});
+
+push({id:53,family:'Motif',hints:[
+ 'Aucune disposition précise n\'est exigée.',
+ 'Seul le nombre de cases allumées compte.',
+ 'Allume exactement huit cases sur seize, n\'importe lesquelles.'],
+ build:function(c){
+  var G=mkGrid(c,4,52);
+  var col=mkCol(c);
+  var s=c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','0');
+  col.appendChild(G.node); col.appendChild(s); c.scene.appendChild(col);
+  var t=null;
+  G.cells.forEach(function(d,i){
+    c.on(d,'click',function(){
+      G.set(i,!G.get(i));
+      var n=G.state().filter(Boolean).length;
+      s.textContent=n;
+      if(t){ clearTimeout(t); t=null; }
+      if(n===8) t=setTimeout(function(){ c.win(); },800);
+    });
+  });
+  return function(){ if(t) clearTimeout(t); };
+ }});
+
+push({id:54,family:'Motif',hints:[
+ 'Le modèle reste affiché en haut. Ce n\'est pas une consigne de copie.',
+ 'La grille du bas doit contredire celle du haut, case par case.',
+ 'Allume en bas ce qui est éteint en haut, et inversement.'],
+ build:function(c){
+  var model=[1,0,0,1, 0,1,1,0, 1,0,1,0, 0,0,1,1];
+  var col=mkCol(c); col.style.gap='14px';
+  var M=mkGrid(c,4,30,3);
+  M.cells.forEach(function(d,i){ M.set(i,model[i]); d.style.cursor='default'; });
+  var G=mkGrid(c,4,44);
+  col.appendChild(M.node); col.appendChild(G.node); c.scene.appendChild(col);
+  G.cells.forEach(function(d,i){
+    c.on(d,'click',function(){
+      G.set(i,!G.get(i));
+      var ok=true;
+      for(var k=0;k<16;k++) if(G.get(k)===!!model[k]) ok=false;
+      if(ok) c.win();
+    });
+  });
+ }});
+
+push({id:55,family:'Précision',hints:[
+ 'Le couloir n\'est plus droit.',
+ 'Le virage compte autant que les lignes droites.',
+ 'Suis le couloir en L du départ jaune à l\'arrivée noire sans en sortir.'],
+ build:function(c){
+  var x0=Math.max(16,Math.round((c.scene.clientWidth-300)/2));
+  var h=c.el('div','position:absolute;left:'+x0+'px;top:80px;width:300px;height:26px;border:1px solid var(--ink);background:#fff');
+  var v=c.el('div','position:absolute;left:'+(x0+274)+'px;top:80px;width:26px;height:200px;border:1px solid var(--ink);background:#fff');
+  var A=c.el('div','position:absolute;left:'+x0+'px;top:80px;width:26px;height:26px;background:var(--signal);z-index:2');
+  var B=c.el('div','position:absolute;left:'+(x0+274)+'px;top:254px;width:26px;height:26px;background:var(--ink);z-index:2');
+  [h,v,A,B].forEach(function(n){ c.scene.appendChild(n); });
+  var armed=false;
+  function inside(e){
+    return [h,v].some(function(n){
+      var r=n.getBoundingClientRect();
+      return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;
+    });
+  }
+  c.on(A,'pointerenter',function(){ armed=true; h.style.background=v.style.background='#FFFCEB'; });
+  c.on(B,'pointerenter',function(){ if(armed) c.win(); });
+  c.on(c.scene,'pointermove',function(e){
+    if(armed&&!inside(e)){ armed=false; h.style.background=v.style.background='#fff'; c.miss('Sorti'); }
+  });
+ }});
+
+push({id:56,family:'Précision',hints:[
+ 'La largeur du passage n\'est pas constante.',
+ 'La fin est bien plus étroite que le début.',
+ 'Traverse en ralentissant à mesure que le couloir se resserre.'],
+ build:function(c){
+  var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox','0 0 600 200'); svg.style.cssText='width:100%;max-width:600px;height:auto;display:block';
+  var p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  p.setAttribute('points','20,60 560,94 560,106 20,140');
+  p.setAttribute('fill','#ffffff'); p.setAttribute('stroke','#14181B');
+  svg.appendChild(p); c.scene.appendChild(svg);
+  var armed=false;
+  function inCorridor(e){
+    var r=svg.getBoundingClientRect();
+    var x=(e.clientX-r.left)/r.width*600, y=(e.clientY-r.top)/r.height*200;
+    if(x<20||x>560) return false;
+    var t=(x-20)/540;
+    var top=60+34*t, bot=140-34*t;
+    return y>=top&&y<=bot;
+  }
+  c.on(c.scene,'pointermove',function(e){
+    var r=svg.getBoundingClientRect();
+    var x=(e.clientX-r.left)/r.width*600;
+    if(!armed&&x<40&&inCorridor(e)){ armed=true; p.setAttribute('fill','#FFFCEB'); return; }
+    if(armed&&!inCorridor(e)){ armed=false; p.setAttribute('fill','#ffffff'); c.miss('Sorti'); return; }
+    if(armed&&x>555) c.win();
+  });
+ }});
+
+push({id:57,family:'Précision',hints:[
+ 'Le cercle ne t\'attend pas.',
+ 'Il faut rester dedans, pas l\'atteindre une fois.',
+ 'Suis le cercle avec le curseur pendant quatre secondes sans en sortir.'],
+ build:function(c){
+  var d=c.el('div','position:absolute;width:74px;height:74px;border-radius:50%;border:1px solid var(--ink);background:#fff;left:100px;top:150px');
+  var ring=c.el('div','position:absolute;left:0;right:0;bottom:10px;height:4px;background:var(--rule)');
+  var prog=c.el('div','height:100%;width:0%;background:var(--signal)');
+  ring.appendChild(prog);
+  c.scene.appendChild(d); c.scene.appendChild(ring);
+  var t=0,last=Date.now(),inside=false,ang=0,px=null,py=null;
+  function check(){
+    if(px===null) return;
+    var r=d.getBoundingClientRect();
+    var was=inside;
+    inside=Math.hypot(px-(r.left+r.width/2),py-(r.top+r.height/2))<=37;
+    d.style.background=inside?'#FFFCEB':'#fff';
+    if(was&&!inside){ t=0; prog.style.width='0%'; }
+  }
+  c.every(function(){
+    var n=Date.now(),dt=n-last; last=n;
+    ang+=dt/900;
+    var w=c.scene.clientWidth,h=c.scene.clientHeight;
+    d.style.left=(w/2-37+Math.cos(ang)*Math.min(190,w/2-70))+'px';
+    d.style.top=(h/2-37+Math.sin(ang*1.4)*90)+'px';
+    check();
+    if(inside){ t+=dt; prog.style.width=Math.min(100,t/40)+'%'; if(t>=4000) c.win(); }
+  },16);
+  c.on(c.scene,'pointermove',function(e){ px=e.clientX; py=e.clientY; check(); });
+  c.on(c.scene,'pointerleave',function(){ px=py=null; if(inside){ inside=false; t=0; prog.style.width='0%'; d.style.background='#fff'; } });
+ }});
+
+push({id:58,family:'Précision',hints:[
+ 'Le trait se dessine en maintenant le bouton.',
+ 'Sa longueur est mesurée, pas sa direction.',
+ 'Trace un trait de deux cents pixels, comme le repère affiché.'],
+ build:function(c){
+  var ref=c.el('div','position:absolute;left:50%;top:30px;transform:translateX(-50%);width:200px;height:3px;background:var(--rule)');
+  var lbl=c.el('div','position:absolute;left:50%;top:40px;transform:translateX(-50%);font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-soft)','200');
+  var line=c.el('div','position:absolute;height:3px;background:var(--signal);transform-origin:0 50%;display:none');
+  c.scene.appendChild(ref); c.scene.appendChild(lbl); c.scene.appendChild(line);
+  var sx=0,sy=0,drawing=false;
+  c.on(c.scene,'pointerdown',function(e){
+    var r=c.scene.getBoundingClientRect();
+    sx=e.clientX-r.left; sy=e.clientY-r.top; drawing=true;
+    line.style.display='block'; line.style.left=sx+'px'; line.style.top=sy+'px'; line.style.width='0px';
+  });
+  c.on(c.scene,'pointermove',function(e){
+    if(!drawing) return;
+    var r=c.scene.getBoundingClientRect();
+    var dx=e.clientX-r.left-sx, dy=e.clientY-r.top-sy;
+    var len=Math.hypot(dx,dy);
+    line.style.width=len+'px';
+    line.style.transform='rotate('+Math.atan2(dy,dx)+'rad)';
+    lbl.textContent=Math.round(len);
+  });
+  c.on(window,'pointerup',function(){
+    if(!drawing) return; drawing=false;
+    var len=parseFloat(line.style.width)||0;
+    if(len<6){ line.style.display='none'; lbl.textContent='200'; return; }
+    if(Math.abs(len-200)<=8) c.win(); else { c.miss(Math.round(len)+' px'); line.style.display='none'; lbl.textContent='200'; }
+  });
+ }});
+
+push({id:59,family:'Précision',hints:[
+ 'Le couloir ne sanctionne pas la sortie ici.',
+ 'C\'est ta vitesse qui est mesurée.',
+ 'Traverse très lentement : dépasser une certaine vitesse annule le trajet.'],
+ build:function(c){
+  var lane=c.el('div','position:absolute;left:60px;right:60px;top:50%;transform:translateY(-50%);height:40px;border:1px solid var(--ink);background:#fff');
+  var A=c.el('div','position:absolute;left:60px;top:50%;transform:translateY(-50%);width:40px;height:40px;background:var(--signal)');
+  var B=c.el('div','position:absolute;right:60px;top:50%;transform:translateY(-50%);width:40px;height:40px;background:var(--ink)');
+  c.scene.appendChild(lane); c.scene.appendChild(A); c.scene.appendChild(B);
+  var armed=false,pts=[];
+  c.on(A,'pointerenter',function(){ armed=true; lane.style.background='#FFFCEB'; pts=[]; });
+  c.on(B,'pointerenter',function(){ if(armed) c.win(); });
+  c.on(c.scene,'pointermove',function(e){
+    var n=performance.now();
+    pts.push([n,e.clientX,e.clientY]);
+    while(pts.length>2&&n-pts[1][0]>=100) pts.shift();
+    var o=pts[0], dt=n-o[0];
+    if(armed&&dt>=60){
+      var v=Math.hypot(e.clientX-o[1],e.clientY-o[2])/dt*1000;
+      if(v>260){ armed=false; lane.style.background='#fff'; c.miss('Trop vite'); }
+    }
+  });
+ }});
+
+push({id:60,family:'Précision',hints:[
+ 'Le couloir est le même qu\'avant. La contrainte est inverse.',
+ 'Rester dedans ne suffit pas, il y a un chronomètre.',
+ 'Traverse d\'un geste franc, en moins de six cents millisecondes.'],
+ build:function(c){
+  var lane=c.el('div','position:absolute;left:60px;right:60px;top:50%;transform:translateY(-50%);height:44px;border:1px solid var(--ink);background:#fff');
+  var A=c.el('div','position:absolute;left:60px;top:50%;transform:translateY(-50%);width:44px;height:44px;background:var(--signal)');
+  var B=c.el('div','position:absolute;right:60px;top:50%;transform:translateY(-50%);width:44px;height:44px;background:var(--ink)');
+  c.scene.appendChild(lane); c.scene.appendChild(A); c.scene.appendChild(B);
+  var t0=0;
+  c.on(A,'pointerenter',function(){ t0=Date.now(); lane.style.background='#FFFCEB'; });
+  c.on(B,'pointerenter',function(){
+    if(!t0) return;
+    var d=Date.now()-t0; t0=0; lane.style.background='#fff';
+    if(d<=600) c.win(); else c.miss(d+' ms');
+  });
+ }});
+
+push({id:61,family:'Précision',hints:[
+ 'Le disque ne doit pas être atteint.',
+ 'Le trajet compte, pas la destination.',
+ 'Fais un tour complet autour du disque sans jamais le toucher.'],
+ build:function(c){
+  var d=c.el('div','position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:90px;height:90px;border-radius:50%;background:var(--ink)');
+  var ringTxt=c.el('div','position:absolute;left:50%;bottom:16px;transform:translateX(-50%);font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-soft)','0\u00b0');
+  c.scene.appendChild(d); c.scene.appendChild(ringTxt);
+  var total=0,prev=null;
+  c.on(c.scene,'pointermove',function(e){
+    var r=d.getBoundingClientRect();
+    var cx=r.left+r.width/2, cy=r.top+r.height/2;
+    var dist=Math.hypot(e.clientX-cx,e.clientY-cy);
+    if(dist<=48){ total=0; prev=null; ringTxt.textContent='0\u00b0'; c.miss('Touché'); return; }
+    var a=Math.atan2(e.clientY-cy,e.clientX-cx);
+    if(prev!==null){
+      var diff=a-prev;
+      while(diff>Math.PI) diff-=2*Math.PI;
+      while(diff<-Math.PI) diff+=2*Math.PI;
+      total+=diff;
+      ringTxt.textContent=Math.round(Math.abs(total)*180/Math.PI)+'\u00b0';
+      if(Math.abs(total)>=2*Math.PI-0.15) c.win();
+    }
+    prev=a;
+  });
+  c.on(c.scene,'pointerleave',function(){ total=0; prev=null; ringTxt.textContent='0\u00b0'; });
+ }});
+
+push({id:62,family:'Précision',hints:[
+ 'La balle se glisse. La cible est minuscule.',
+ 'Le dépôt doit être exact, pas approchant.',
+ 'Dépose le centre de la balle sur le point, à quelques pixels près.'],
+ build:function(c){
+  var target=c.el('div','position:absolute;left:70%;top:50%;transform:translate(-50%,-50%);width:9px;height:9px;background:var(--refus)');
+  var b=c.el('div','width:30px;height:30px;left:120px;top:190px;cursor:grab'); b.className='obj ball';
+  c.scene.appendChild(target); c.scene.appendChild(b);
+  var drag=false;
+  c.on(b,'pointerdown',function(e){ drag=true; e.preventDefault(); });
+  c.on(window,'pointermove',function(e){
+    if(!drag) return;
+    var r=c.scene.getBoundingClientRect();
+    b.style.left=(e.clientX-r.left)+'px'; b.style.top=(e.clientY-r.top)+'px';
+    b.style.transform='translate(-50%,-50%)';
+  });
+  c.on(window,'pointerup',function(){
+    if(!drag) return; drag=false;
+    var rb=b.getBoundingClientRect(), rt=target.getBoundingClientRect();
+    var d=Math.hypot((rb.left+rb.width/2)-(rt.left+rt.width/2),(rb.top+rb.height/2)-(rt.top+rt.height/2));
+    if(d<=6) c.win(); else c.miss(Math.round(d)+' px');
+  });
+ }});
+
+push({id:63,family:'Inversion',hints:[
+ 'La balle réagit à la souris, mais pas comme prévu.',
+ 'Elle part exactement à l\'opposé de ton geste.',
+ 'Vise à l\'opposé de la cible pour l\'y amener.'],
+ build:function(c){
+  var t=c.el('div','position:absolute;left:80px;top:80px;width:44px;height:44px;border:1px solid var(--refus)');
+  var b=c.el('div','width:28px;height:28px;left:50%;top:50%;transform:translate(-50%,-50%)'); b.className='obj ball';
+  c.scene.appendChild(t); c.scene.appendChild(b);
+  c.on(c.scene,'pointermove',function(e){
+    var r=c.scene.getBoundingClientRect();
+    var x=r.width-(e.clientX-r.left), y=r.height-(e.clientY-r.top);
+    b.style.left=x+'px'; b.style.top=y+'px';
+    var rb=b.getBoundingClientRect(), rt=t.getBoundingClientRect();
+    if(rb.left+14>rt.left&&rb.left+14<rt.right&&rb.top+14>rt.top&&rb.top+14<rt.bottom) c.win();
+  });
+ }});
+
+push({id:64,family:'Inversion',hints:[
+ 'Les deux boutons font ce que l\'autre annonce.',
+ 'Le signe affiché est faux.',
+ 'Pour monter à douze, appuie sur le moins.'],
+ build:function(c){
+  var v=6, col=mkCol(c);
+  var n=c.el('div',null,'6'); n.className='big';
+  var row=mkRow(c);
+  var m=mkBtn(c,'\u2212'), p=mkBtn(c,'+');
+  row.appendChild(m); row.appendChild(p);
+  col.appendChild(n); col.appendChild(row); c.scene.appendChild(col);
+  var t=null;
+  function render(){
+    n.textContent=v;
+    if(t){ clearTimeout(t); t=null; }
+    if(v===12) t=setTimeout(function(){ c.win(); },700);
+  }
+  c.on(m,'click',function(){ v=Math.min(20,v+1); render(); });
+  c.on(p,'click',function(){ v=Math.max(0,v-1); render(); });
+  return function(){ if(t) clearTimeout(t); };
+ }});
+
+push({id:65,family:'Inversion',hints:[
+ 'La cible te fuit tant que tu la poursuis.',
+ 'Elle revient vers ce qu\'elle a cessé de craindre.',
+ 'Éloigne-toi jusqu\'au bord et laisse-la venir sur le repère.'],
+ build:function(c){
+  var zone=c.el('div','position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:70px;height:70px;border:1px dashed var(--refus)');
+  var b=c.el('div','width:30px;height:30px;left:140px;top:120px;transform:translate(-50%,-50%)'); b.className='obj ball';
+  c.scene.appendChild(zone); c.scene.appendChild(b);
+  var px=140,py=120,mx=-999,my=-999;
+  c.on(c.scene,'pointermove',function(e){
+    var r=c.scene.getBoundingClientRect(); mx=e.clientX-r.left; my=e.clientY-r.top;
+  });
+  c.on(c.scene,'pointerleave',function(){ mx=-999; my=-999; });
+  c.every(function(){
+    var w=c.scene.clientWidth,h=c.scene.clientHeight;
+    var dx=px-mx, dy=py-my, d=Math.hypot(dx,dy);
+    if(d<200&&mx>-500){ px+=dx/d*4; py+=dy/d*4; }
+    else { px+=(w/2-px)*0.05; py+=(h/2-py)*0.05; }
+    px=Math.max(16,Math.min(w-16,px)); py=Math.max(16,Math.min(h-16,py));
+    b.style.left=px+'px'; b.style.top=py+'px';
+    if(Math.abs(px-w/2)<20&&Math.abs(py-h/2)<20) c.win();
+  },30);
+ }});
+
+push({id:66,family:'Inversion',hints:[
+ 'Le compteur ne monte pas.',
+ 'Il boucle : sous zéro, il repart du haut.',
+ 'Descends sous zéro pour atteindre vingt.'],
+ build:function(c){
+  var v=5, col=mkCol(c);
+  var n=c.el('div',null,'5'); n.className='big';
+  var b=mkBtn(c,'\u2212 1');
+  col.appendChild(n); col.appendChild(b); c.scene.appendChild(col);
+  c.on(b,'click',function(){
+    v--; if(v<0) v=20;
+    n.textContent=v;
+    if(v===20) c.after(function(){ if(v===20) c.win(); },400);
+  });
+ }});
+
+push({id:67,family:'Inversion',hints:[
+ 'Le champ ne rend pas ce que tu y mets.',
+ 'Il retourne chaque frappe.',
+ 'Tape le mot à l\'envers pour qu\'il s\'affiche à l\'endroit.'],
+ build:function(c){
+  var col=mkCol(c);
+  var goal=c.el('div','font-family:JetBrains Mono,monospace;font-size:22px;color:var(--ink-soft)','miroir');
+  var f=c.el('input'); f.className='field';
+  var out=c.el('div','font-family:JetBrains Mono,monospace;font-size:22px;min-height:28px','');
+  col.appendChild(goal); col.appendChild(f); col.appendChild(out); c.scene.appendChild(col);
+  c.on(f,'input',function(){
+    var r=f.value.split('').reverse().join('');
+    out.textContent=r;
+    if(r.trim().toLowerCase()==='miroir') c.win();
+  });
+  c.after(function(){ f.focus(); },50);
+ }});
+
+push({id:68,family:'Inversion',hints:[
+ 'Les deux jauges sont liées.',
+ 'Remplir l\'une vide l\'autre. Aucune ne peut gagner seule.',
+ 'Amène les deux à la même hauteur et arrête d\'y toucher.'],
+ build:function(c){
+  var a=10,b=90;
+  var row=mkRow(c);
+  function bar(){
+    var w=c.el('div','height:180px;width:40px;display:flex;align-items:flex-end;border:1px solid var(--ink);background:#fff');
+    var f=c.el('div','width:100%;background:var(--signal)'); w.appendChild(f); return {w:w,f:f};
+  }
+  var A=bar(), B=bar();
+  var col=mkCol(c);
+  row.appendChild(A.w); row.appendChild(B.w);
+  var ctr=mkRow(c);
+  var l=mkBtn(c,'\u25c0'), r=mkBtn(c,'\u25b6');
+  ctr.appendChild(l); ctr.appendChild(r);
+  col.appendChild(row); col.appendChild(ctr); c.scene.appendChild(col);
+  var t=null;
+  function render(){
+    A.f.style.height=(a*1.78)+'px'; B.f.style.height=(b*1.78)+'px';
+    if(t){ clearTimeout(t); t=null; }
+    if(Math.abs(a-b)<=2) t=setTimeout(function(){ c.win(); },900);
+  }
+  c.on(l,'click',function(){ a=Math.min(100,a+10); b=Math.max(0,b-10); render(); });
+  c.on(r,'click',function(){ a=Math.max(0,a-10); b=Math.min(100,b+10); render(); });
+  render();
+  return function(){ if(t) clearTimeout(t); };
+ }});
+
+push({id:69,family:'Inversion',hints:[
+ 'Le bouton de validation ne valide rien.',
+ 'La sortie se trouve là où on abandonne d\'habitude.',
+ 'Appuie sur la touche Échap.'],
+ build:function(c){
+  var col=mkCol(c);
+  var f=c.el('input'); f.className='field'; f.placeholder='';
+  var b=mkBtn(c,'Valider');
+  col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  c.on(b,'click',function(){ c.miss('Refusé'); });
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') c.miss('Refusé'); });
+  c.on(window,'keydown',function(e){ if(e.key==='Escape') c.win(); });
+ }});
+
+push({id:70,family:'Inversion',hints:[
+ 'La scène entière est retournée.',
+ 'Ce que tu vois à gauche est à droite.',
+ 'La cible apparaît à droite : amène le curseur à gauche pour l\'atteindre.'],
+ build:function(c){
+  var inner=c.el('div','position:absolute;inset:0;transform:scaleX(-1)');
+  var t=c.el('div','position:absolute;left:70px;top:50%;transform:translateY(-50%);width:50px;height:50px;border:1px solid var(--refus)');
+  var b=c.el('div','position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:var(--signal);border:1px solid var(--ink)');
+  inner.appendChild(t); inner.appendChild(b); c.scene.appendChild(inner);
+  c.on(c.scene,'pointermove',function(e){
+    var r=c.scene.getBoundingClientRect();
+    var x=e.clientX-r.left, y=e.clientY-r.top;
+    b.style.left=x+'px'; b.style.top=y+'px';
+    var rb=b.getBoundingClientRect(), rt=t.getBoundingClientRect();
+    if(rb.left+13>rt.left&&rb.left+13<rt.right&&rb.top+13>rt.top&&rb.top+13<rt.bottom) c.win();
+  });
+ }});
+</script>
+
+<script>
+push({id:71,family:'Inaction',hints:[
+ 'Le compteur monte à chaque clic. Rien ne dit qu\'il doit monter.',
+ 'Le niveau attend une durée sans aucun clic.',
+ 'Ne clique plus rien pendant douze secondes.'],
+ build:function(c){
+  var n=0, col=mkCol(c);
+  var d=c.el('div',null,'0'); d.className='big';
+  var b=mkBtn(c,'Cliquer');
+  col.appendChild(d); col.appendChild(b); c.scene.appendChild(col);
+  var last=Date.now();
+  c.on(b,'click',function(){ n++; d.textContent=n; last=Date.now(); });
+  c.every(function(){ if(Date.now()-last>=12000) c.win(); },200);
+ }});
+
+push({id:72,family:'Inaction',hints:[
+ 'Rien n\'est cliquable ici.',
+ 'Le niveau suit ton curseur, pas tes clics.',
+ 'Lâche la souris et ne la bouge plus pendant huit secondes.'],
+ build:function(c){
+  var ring=c.el('div','width:120px;height:120px;border:1px solid var(--rule);border-radius:50%');
+  var inner=c.el('div','width:0px;height:0px;border-radius:50%;background:var(--signal);margin:60px auto 0;transition:none');
+  ring.appendChild(inner); c.scene.appendChild(ring);
+  var last=Date.now();
+  c.on(window,'pointermove',function(){ last=Date.now(); });
+  c.every(function(){
+    var t=Date.now()-last, p=Math.min(1,t/8000);
+    inner.style.width=inner.style.height=(118*p)+'px';
+    inner.style.margin=(60-59*p)+'px auto 0';
+    if(t>=8000) c.win();
+  },50);
+ }});
+
+push({id:73,family:'Inaction',hints:[
+ 'Les formes traversent la scène. Elles sont cliquables.',
+ 'Chaque forme cliquée remet le compte à zéro.',
+ 'Laisse passer huit formes sans en toucher une seule.'],
+ build:function(c){
+  var passed=0, col=c.el('div','position:absolute;left:12px;top:10px;font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','0 / 8');
+  c.scene.appendChild(col);
+  c.every(function(){
+    var y=40+Math.random()*(c.scene.clientHeight-90);
+    var d=c.el('div','position:absolute;left:-40px;top:'+y+'px;width:30px;height:30px;background:var(--ink);cursor:pointer');
+    c.scene.appendChild(d);
+    c.on(d,'click',function(){ passed=0; col.textContent='0 / 8'; d.remove(); c.miss(); });
+    var x=-40, last=Date.now();
+    function run(){
+      if(!c.alive()||!d.isConnected) return;
+      var n=Date.now(); x+=((n-last)/2600)*(c.scene.clientWidth+80); last=n;
+      d.style.left=x+'px';
+      if(x>c.scene.clientWidth+10){
+        d.remove(); passed++; col.textContent=passed+' / 8';
+        if(passed>=8) c.win();
+        return;
+      }
+      requestAnimationFrame(run);
+    }
+    requestAnimationFrame(run);
+  },900);
+ }});
+
+push({id:74,family:'Inaction',hints:[
+ 'Une question est posée. Rien n\'oblige à répondre.',
+ 'Toute frappe et tout clic relancent l\'attente.',
+ 'Ne réponds pas. Attends quinze secondes sans rien toucher.'],
+ build:function(c){
+  var col=mkCol(c);
+  col.appendChild(c.el('div','font-size:15px','Quel est ton nom ?'));
+  var f=c.el('input'); f.className='field';
+  var b=mkBtn(c,'Répondre');
+  col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  var last=Date.now();
+  c.on(f,'input',function(){ last=Date.now(); });
+  c.on(b,'click',function(){ last=Date.now(); c.miss(); });
+  c.on(c.scene,'pointerdown',function(){ last=Date.now(); });
+  c.every(function(){ if(Date.now()-last>=15000) c.win(); },200);
+ }});
+
+push({id:75,family:'Quantité',hints:[
+ 'Deux pas différents, une seule cible.',
+ 'Aucune combinaison d\'un seul bouton n\'y arrive.',
+ 'Atteins exactement dix-neuf : deux fois cinq et trois fois trois.'],
+ build:function(c){
+  var v=0, col=mkCol(c);
+  var d=c.el('div',null,'0'); d.className='big';
+  var row=mkRow(c);
+  var a=mkBtn(c,'+3'), b=mkBtn(c,'+5'), r=mkBtn(c,'0');
+  row.appendChild(a); row.appendChild(b); row.appendChild(r);
+  col.appendChild(d); col.appendChild(row); c.scene.appendChild(col);
+  function set(x){ v=x; d.textContent=v; if(v===19) c.after(function(){ if(v===19) c.win(); },400); else if(v>19) c.miss('Dépassé'); }
+  c.on(a,'click',function(){ set(v+3); });
+  c.on(b,'click',function(){ set(v+5); });
+  c.on(r,'click',function(){ v=0; d.textContent='0'; });
+ }});
+
+push({id:76,family:'Quantité',hints:[
+ 'La forme au-dessus n\'est pas décorative.',
+ 'Elle donne un nombre, pas une disposition.',
+ 'Allume autant de cases que la forme a de côtés.'],
+ build:function(c){
+  var col=mkCol(c);
+  var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox','0 0 100 100'); svg.setAttribute('width','76'); svg.setAttribute('height','76');
+  var p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  p.setAttribute('points','25,5 75,5 98,50 75,95 25,95 2,50'); p.setAttribute('fill','#14181B');
+  svg.appendChild(p);
+  var G=mkGrid(c,3,50);
+  col.appendChild(svg); col.appendChild(G.node); c.scene.appendChild(col);
+  var t=null;
+  G.cells.forEach(function(d,i){
+    c.on(d,'click',function(){
+      G.set(i,!G.get(i));
+      var n=G.state().filter(Boolean).length;
+      if(t){ clearTimeout(t); t=null; }
+      if(n===6) t=setTimeout(function(){ c.win(); },800);
+    });
+  });
+  return function(){ if(t) clearTimeout(t); };
+ }});
+
+push({id:77,family:'Quantité',hints:[
+ 'Trois compteurs, aucune cible individuelle.',
+ 'Ce qui est jugé, c\'est leur total.',
+ 'Fais en sorte que la somme des trois vaille dix.'],
+ build:function(c){
+  var v=[0,0,0], row=mkRow(c), outs=[];
+  v.forEach(function(_,i){
+    var col=mkCol(c); col.style.gap='8px';
+    var o=c.el('div','font-family:JetBrains Mono,monospace;font-size:34px','0'); outs.push(o);
+    var ctr=mkRow(c); ctr.style.gap='4px';
+    var m=mkBtn(c,'\u2212'), p=mkBtn(c,'+');
+    m.style.cssText+=';padding:2px 8px'; p.style.cssText+=';padding:2px 8px';
+    ctr.appendChild(m); ctr.appendChild(p);
+    col.appendChild(o); col.appendChild(ctr); row.appendChild(col);
+    c.on(m,'click',function(){ v[i]=Math.max(0,v[i]-1); render(); });
+    c.on(p,'click',function(){ v[i]=Math.min(9,v[i]+1); render(); });
+  });
+  c.scene.appendChild(row);
+  var t=null;
+  function render(){
+    v.forEach(function(x,i){ outs[i].textContent=x; });
+    var s=v[0]+v[1]+v[2];
+    if(t){ clearTimeout(t); t=null; }
+    if(s===10) t=setTimeout(function(){ c.win(); },800);
+  }
+  return function(){ if(t) clearTimeout(t); };
+ }});
+
+push({id:78,family:'Quantité',hints:[
+ 'Les points sont dispersés mais dénombrables.',
+ 'Le pavé attend un nombre de frappes, pas un nombre tapé.',
+ 'Compte les points, puis frappe le pavé autant de fois, puis valide.'],
+ build:function(c){
+  var N=7, col=mkCol(c), FW=Math.min(420,c.scene.clientWidth-40);
+  var field=c.el('div','position:relative;width:'+FW+'px;height:150px;border:1px solid var(--rule);background:#fff');
+  var pts=[];
+  for(var k=0;pts.length<N&&k<2000;k++){
+    var px=14+Math.random()*(FW-40), py=14+Math.random()*118;
+    if(pts.every(function(q){ return Math.hypot(q[0]-px,q[1]-py)>=26; })) pts.push([px,py]);
+  }
+  pts.forEach(function(q){
+    field.appendChild(c.el('div','position:absolute;left:'+q[0]+'px;top:'+q[1]+'px;width:11px;height:11px;border-radius:50%;background:var(--ink)'));
+  });
+  N=pts.length;
+  var pad=c.el('div','width:110px;height:52px;border:1px solid var(--ink);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:JetBrains Mono,monospace;font-size:20px','0');
+  var b=mkBtn(c,'Valider');
+  col.appendChild(field); col.appendChild(pad); col.appendChild(b); c.scene.appendChild(col);
+  var n=0;
+  c.on(pad,'click',function(){ n++; pad.textContent=n; });
+  c.on(b,'click',function(){ if(n===N) c.win(); else { n=0; pad.textContent='0'; c.miss(); } });
+ }});
+
+push({id:79,family:'Négligence',hints:[
+ 'Tout bouge, ou presque.',
+ 'L\'exception n\'est pas dans le mouvement.',
+ 'Clique la seule forme qui n\'a jamais bougé.'],
+ build:function(c){
+  var w=c.scene.clientWidth,h=c.scene.clientHeight, nodes=[];
+  for(var i=0;i<9;i++){
+    var d=c.el('div','position:absolute;width:26px;height:26px;background:var(--ink);cursor:pointer;left:'+(30+Math.random()*(w-90))+'px;top:'+(30+Math.random()*(h-90))+'px');
+    c.scene.appendChild(d); nodes.push(d);
+  }
+  var still=nodes[4];
+  nodes.forEach(function(d,i){
+    c.on(d,'click',function(){ if(d===still) c.win(); else c.miss(); });
+    if(d===still) return;
+    var ax=Math.random()*6.28, sp=0.4+Math.random();
+    var x0=parseFloat(d.style.left), y0=parseFloat(d.style.top);
+    c.every(function(){
+      ax+=0.05*sp;
+      d.style.left=(x0+Math.cos(ax)*26)+'px';
+      d.style.top=(y0+Math.sin(ax*1.3)*20)+'px';
+    },40);
+  });
+ }});
+
+push({id:80,family:'Négligence',hints:[
+ 'Le compte à rebours n\'a aucune conséquence.',
+ 'Il est là pour occuper ton regard.',
+ 'Ignore-le et clique la petite mention en bas.'],
+ build:function(c){
+  var big=c.el('div','font-family:JetBrains Mono,monospace;font-size:72px','30');
+  var small=c.el('div','position:absolute;left:50%;bottom:18px;transform:translateX(-50%);font-size:11px;color:var(--ink-soft);cursor:pointer;text-decoration:underline','passer outre');
+  c.scene.appendChild(big); c.scene.appendChild(small);
+  var n=30;
+  c.every(function(){ n=n>0?n-1:30; big.textContent=n; },1000);
+  c.on(big,'click',function(){ c.miss(); });
+  c.on(small,'click',function(){ c.win(); });
+ }});
+
+push({id:81,family:'Négligence',hints:[
+ 'Les trois boutons ne font rien, et ne feront jamais rien.',
+ 'La surface qui les porte est elle aussi une surface.',
+ 'Clique le fond, à côté des boutons.'],
+ build:function(c){
+  var row=mkRow(c);
+  ['Lancer','Confirmer','Continuer'].forEach(function(t){
+    var b=mkBtn(c,t); row.appendChild(b);
+    c.on(b,'click',function(e){ e.stopPropagation(); c.miss(); });
+  });
+  c.scene.appendChild(row);
+  c.on(c.scene,'click',function(){ c.win(); });
+ }});
+
+push({id:82,family:'Méta',hints:[
+ 'La scène est muette. L\'interface ne l\'est pas.',
+ 'Un mot décrit ce niveau, en haut, hors du cadre.',
+ 'Clique le nom de la famille affiché à côté du numéro.'],
+ build:function(c){
+  c.scene.appendChild(c.el('div','color:var(--ink-soft);font-size:13px','\u2014'));
+  c.hud.fam.style.cursor='pointer';
+  c.on(c.hud.fam,'click',function(){ c.win(); });
+  c.on(c.scene,'click',function(){ c.miss(); });
+  return function(){ c.hud.fam.style.cursor=''; };
+ }});
+
+push({id:83,family:'Méta',hints:[
+ 'Ce niveau ne se résout pas dans ce niveau.',
+ 'Il demande d\'ouvrir une autre partie du jeu.',
+ 'Ouvre la liste des niveaux.'],
+ build:function(c){
+  c.scene.appendChild(c.el('div','color:var(--ink-soft);font-size:13px','\u2014'));
+  c.on(c.hud.menu,'click',function(){
+    c.after(function(){
+      var m=document.getElementById('menu'); if(m) m.style.display='none';
+      c.win();
+    },500);
+  });
+  c.on(c.scene,'click',function(){ c.miss(); });
+ }});
+
+push({id:84,family:'Méta',hints:[
+ 'Le compteur n\'a pas de cible écrite. Le jeu en affiche une ailleurs.',
+ 'Le nombre attendu est celui de ce niveau.',
+ 'Monte le compteur jusqu\'à quatre-vingt-quatre.'],
+ build:function(c){
+  var v=0, col=mkCol(c);
+  var d=c.el('div',null,'0'); d.className='big';
+  var row=mkRow(c);
+  var p1=mkBtn(c,'+1'), p10=mkBtn(c,'+10'), r=mkBtn(c,'0');
+  row.appendChild(p1); row.appendChild(p10); row.appendChild(r);
+  col.appendChild(d); col.appendChild(row); c.scene.appendChild(col);
+  var t=null;
+  function set(x){
+    v=Math.max(0,x); d.textContent=v;
+    if(t){ clearTimeout(t); t=null; }
+    if(v===84) t=setTimeout(function(){ c.win(); },600);
+  }
+  c.on(p1,'click',function(){ set(v+1); });
+  c.on(p10,'click',function(){ set(v+10); });
+  c.on(r,'click',function(){ set(0); });
+  return function(){ if(t) clearTimeout(t); };
+ }});
+
+push({id:85,family:'Coopération',hints:[
+ 'Trois balles, aucune cible marquée.',
+ 'Leur position absolue ne compte pas, leur relation si.',
+ 'Aligne les trois balles sur une même horizontale.'],
+ build:function(c){
+  var W=c.scene.clientWidth;
+  var balls=[[W*0.1,90],[W*0.4,250],[W*0.72,140]].map(function(p){
+    var b=c.el('div','width:28px;height:28px;left:'+Math.round(p[0])+'px;top:'+p[1]+'px;cursor:grab'); b.className='obj ball';
+    c.scene.appendChild(b); return b;
+  });
+  var drag=null, t=null;
+  balls.forEach(function(b){ c.on(b,'pointerdown',function(e){ drag=b; e.preventDefault(); }); });
+  c.on(window,'pointerup',function(){ drag=null; });
+  c.on(window,'pointermove',function(e){
+    if(!drag) return;
+    var r=c.scene.getBoundingClientRect();
+    drag.style.left=Math.max(14,Math.min(r.width-42,e.clientX-r.left))+'px';
+    drag.style.top=Math.max(14,Math.min(r.height-42,e.clientY-r.top))+'px';
+    var ys=balls.map(function(b){ return parseFloat(b.style.top); });
+    var ok=Math.max.apply(null,ys)-Math.min.apply(null,ys)<=9;
+    if(t){ clearTimeout(t); t=null; }
+    if(ok) t=setTimeout(function(){ c.win(); },700);
+  });
+  return function(){ if(t) clearTimeout(t); };
+ }});
+
+push({id:86,family:'Coopération',hints:[
+ 'Deux formes, deux tailles.',
+ 'L\'une doit disparaître dans l\'autre.',
+ 'Superpose le petit carré exactement au centre du grand.'],
+ build:function(c){
+  var big=c.el('div','position:absolute;left:calc(68% - 43px);top:150px;width:86px;height:86px;border:1px solid var(--ink);background:#fff');
+  var sm=c.el('div','position:absolute;left:110px;top:110px;width:30px;height:30px;background:var(--signal);border:1px solid var(--ink);cursor:grab');
+  c.scene.appendChild(big); c.scene.appendChild(sm);
+  var drag=false;
+  c.on(sm,'pointerdown',function(e){ drag=true; e.preventDefault(); });
+  c.on(window,'pointerup',function(){
+    if(!drag) return; drag=false;
+    var rb=big.getBoundingClientRect(), rs=sm.getBoundingClientRect();
+    var d=Math.hypot((rs.left+rs.width/2)-(rb.left+rb.width/2),(rs.top+rs.height/2)-(rb.top+rb.height/2));
+    if(d<=7) c.win(); else c.miss(Math.round(d)+' px');
+  });
+  c.on(window,'pointermove',function(e){
+    if(!drag) return;
+    var r=c.scene.getBoundingClientRect();
+    sm.style.left=(e.clientX-r.left-15)+'px'; sm.style.top=(e.clientY-r.top-15)+'px';
+  });
+ }});
+
+push({id:87,family:'Coopération',hints:[
+ 'Un lien relie les deux balles.',
+ 'Le rapprochement n\'apporte rien.',
+ 'Écarte-les jusqu\'à tendre complètement le lien.'],
+ build:function(c){
+  var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('width','100%'); svg.setAttribute('height','100%');
+  svg.style.cssText='position:absolute;inset:0;pointer-events:none';
+  var ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+  ln.setAttribute('stroke','#5A6368'); ln.setAttribute('stroke-width','2');
+  svg.appendChild(ln); c.scene.appendChild(svg);
+  var A=c.el('div','width:28px;height:28px;left:220px;top:180px;cursor:grab'); A.className='obj ball';
+  var B=c.el('div','width:28px;height:28px;left:300px;top:180px;cursor:grab'); B.className='obj ball';
+  c.scene.appendChild(A); c.scene.appendChild(B);
+  function draw(){
+    ln.setAttribute('x1',parseFloat(A.style.left)+14); ln.setAttribute('y1',parseFloat(A.style.top)+14);
+    ln.setAttribute('x2',parseFloat(B.style.left)+14); ln.setAttribute('y2',parseFloat(B.style.top)+14);
+    var d=Math.hypot(parseFloat(A.style.left)-parseFloat(B.style.left),parseFloat(A.style.top)-parseFloat(B.style.top));
+    ln.setAttribute('stroke',d>330?'#E8C21C':'#5A6368');
+    if(d>=340) c.win();
+  }
+  draw();
+  var drag=null;
+  [A,B].forEach(function(n){ c.on(n,'pointerdown',function(e){ drag=n; e.preventDefault(); }); });
+  c.on(window,'pointerup',function(){ drag=null; });
+  c.on(window,'pointermove',function(e){
+    if(!drag) return;
+    var r=c.scene.getBoundingClientRect();
+    drag.style.left=Math.max(6,Math.min(r.width-34,e.clientX-r.left-14))+'px';
+    drag.style.top=Math.max(6,Math.min(r.height-34,e.clientY-r.top-14))+'px';
+    draw();
+  });
+ }});
+
+push({id:88,family:'Rupture',hints:[
+ 'La barre affiche l\'inverse de ce qu\'elle mesure.',
+ 'La remplir revient à vider ce qui compte.',
+ 'Vide entièrement la barre affichée.'],
+ build:function(c){
+  var real=40, col=mkCol(c);
+  var track=c.el('div','width:400px;max-width:calc(100vw - 72px);height:16px;border:1px solid var(--ink);background:#fff');
+  var fill=c.el('div','height:100%;background:var(--signal)');
+  track.appendChild(fill);
+  var row=mkRow(c);
+  var p=mkBtn(c,'Progresser'), m=mkBtn(c,'Reculer');
+  row.appendChild(p); row.appendChild(m);
+  col.appendChild(track); col.appendChild(row); c.scene.appendChild(col);
+  function render(){ fill.style.width=(100-real)+'%'; }
+  c.on(p,'click',function(){ real=Math.max(0,real-20); render(); });
+  c.on(m,'click',function(){ real=Math.min(100,real+20); render(); if(real>=100) c.win(); });
+  render();
+ }});
+
+push({id:89,family:'Rupture',hints:[
+ 'Les libellés des deux boutons ont été échangés.',
+ 'Celui qui remet à zéro est celui qui ajoute.',
+ 'Atteins cinq en utilisant le bouton marqué zéro.'],
+ build:function(c){
+  var v=0, col=mkCol(c);
+  var d=c.el('div',null,'0'); d.className='big';
+  var row=mkRow(c);
+  var a=mkBtn(c,'+1'), r=mkBtn(c,'0');
+  row.appendChild(a); row.appendChild(r);
+  col.appendChild(d); col.appendChild(row); c.scene.appendChild(col);
+  c.on(a,'click',function(){ v=0; d.textContent='0'; });
+  c.on(r,'click',function(){ v++; d.textContent=v; if(v===5) c.after(function(){ if(v===5) c.win(); },400); });
+ }});
+
+push({id:90,family:'Rupture',hints:[
+ 'Le message annonce une victoire qui n\'a pas eu lieu.',
+ 'Rien ne progresse tant qu\'il est cru.',
+ 'Clique le message pour le démentir.'],
+ build:function(c){
+  var box=c.el('div','width:300px;border:1px solid var(--ok);background:#fff;padding:18px;text-align:center;cursor:pointer');
+  box.appendChild(c.el('div','font-size:18px;color:var(--ok)','Niveau résolu'));
+  box.appendChild(c.el('div','font-size:12px;color:var(--ink-soft);margin-top:6px','Passage au niveau suivant\u2026'));
+  c.scene.appendChild(box);
+  c.on(box,'click',function(){ c.win(); });
+ }});
+</script>
+<script>
+push({id:91,family:'Environnement',hints:[
+ 'Rien dans la page ne réagit.',
+ 'Le jeu sait quand tu ne le regardes plus.',
+ 'Change d\'onglet, puis reviens.'],
+ build:function(c){
+  c.scene.appendChild(c.el('div','font-size:15px;color:var(--ink-soft)','Toujours là.'));
+  var gone=false;
+  c.on(document,'visibilitychange',function(){
+    if(document.hidden) gone=true;
+    else if(gone) c.after(function(){ c.win(); },300);
+  });
+ }});
+
+push({id:92,family:'Environnement',hints:[
+ 'Le niveau ne surveille pas l\'onglet mais la fenêtre.',
+ 'Il faut que la fenêtre cesse d\'être active un moment.',
+ 'Clique en dehors de la fenêtre du navigateur et attends trois secondes avant de revenir.'],
+ build:function(c){
+  c.scene.appendChild(c.el('div','font-size:15px;color:var(--ink-soft)','Focus.'));
+  var t0=0;
+  c.on(window,'blur',function(){ t0=Date.now(); });
+  c.on(window,'focus',function(){ if(t0&&Date.now()-t0>=3000) c.win(); else if(t0) c.miss('Trop court'); t0=0; });
+ }});
+
+push({id:93,family:'Temps réel',hints:[
+ 'Le cadran est muet mais l\'heure ne l\'est pas.',
+ 'Un instant sur dix est accepté.',
+ 'Clique quand les secondes de ton horloge tombent sur une dizaine ronde.'],
+ build:function(c){
+  var col=mkCol(c);
+  var dial=c.el('div','width:120px;height:120px;border:1px solid var(--ink);border-radius:50%;position:relative');
+  var hand=c.el('div','position:absolute;left:50%;top:10px;width:2px;height:50px;background:var(--ink);transform-origin:50% 100%');
+  dial.appendChild(hand);
+  var b=mkBtn(c,'Maintenant');
+  col.appendChild(dial); col.appendChild(b); c.scene.appendChild(col);
+  c.every(function(){
+    var d=new Date(), s=d.getSeconds()+d.getMilliseconds()/1000;
+    hand.style.transform='rotate('+(s/60*360)+'deg)';
+  },50);
+  c.on(b,'click',function(){
+    var d=new Date(), s=d.getSeconds(), ms=d.getMilliseconds();
+    if(s%10===0&&ms<600) c.win();
+    else if(s%10===9&&ms>600) c.win();
+    else c.miss();
+  });
+ }});
+
+push({id:94,family:'Temps réel',hints:[
+ 'La réponse n\'est ni dans la scène ni dans le navigateur.',
+ 'Elle est sur ton horloge, au format vingt-quatre heures.',
+ 'Saisis l\'heure courante, heures et minutes séparées par deux points.'],
+ build:function(c){
+  var col=mkCol(c);
+  var f=c.el('input'); f.className='field'; f.style.width='140px'; f.style.textAlign='center'; f.placeholder='--:--';
+  var b=mkBtn(c,'Valider');
+  col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  function tryIt(){
+    var v=f.value.trim();
+    if(!v){ c.miss('Champ vide'); return; }
+    var now=Date.now(), ok=[];
+    [now,now-60000].forEach(function(t){
+      var d=new Date(t), mm=String(d.getMinutes()).padStart(2,'0');
+      ok.push(String(d.getHours()).padStart(2,'0')+':'+mm, d.getHours()+':'+mm);
+    });
+    if(ok.indexOf(v.replace(/\s/g,'').replace(/h/i,':'))>=0) c.win(); else c.miss();
+  }
+  c.on(b,'click',tryIt);
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') tryIt(); });
+ }});
+
+push({id:95,family:'Navigation',hints:[
+ 'La barre accepte toujours une adresse.',
+ 'Cette fois la sortie n\'est pas devant.',
+ 'Retourne à l\'adresse du niveau précédent, jeu://niveau/94.'],
+ build:function(c){
+  var col=mkCol(c);
+  col.appendChild(c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','jeu://niveau/95'));
+  var f=c.el('input'); f.className='field';
+  var b=mkBtn(c,'Aller');
+  col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  function tryIt(){
+    var v=f.value.trim().toLowerCase();
+    if(v==='jeu://niveau/94') c.win();
+    else if(v==='jeu://niveau/96') c.miss('Verrouillé');
+    else c.miss();
+  }
+  c.on(b,'click',tryIt);
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') tryIt(); });
+ }});
+
+push({id:96,family:'Navigation',hints:[
+ 'L\'adresse courante est incomplète.',
+ 'Un segment manque après le numéro, et il est écrit quelque part.',
+ 'Saisis jeu://niveau/96/sortie.'],
+ build:function(c){
+  var col=mkCol(c);
+  col.appendChild(c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','jeu://niveau/96/\u2026'));
+  var sign=c.el('div','position:absolute;right:14px;bottom:12px;font-size:11px;color:var(--rule)','sortie');
+  var f=c.el('input'); f.className='field'; f.style.width='260px';
+  var b=mkBtn(c,'Aller');
+  col.appendChild(f); col.appendChild(b); c.scene.appendChild(col); c.scene.appendChild(sign);
+  function tryIt(){
+    if(f.value.trim().toLowerCase()==='jeu://niveau/96/sortie') c.win(); else c.miss();
+  }
+  c.on(b,'click',tryIt);
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') tryIt(); });
+ }});
+
+push({id:97,family:'Texte',hints:[
+ 'Le champ attend une saisie. Rien ne dit qu\'elle doit contenir quelque chose.',
+ 'Toute lettre est refusée, quelle qu\'elle soit.',
+ 'Valide le champ vide.'],
+ build:function(c){
+  var col=mkCol(c);
+  var f=c.el('input'); f.className='field'; f.placeholder='';
+  var b=mkBtn(c,'Valider');
+  col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  c.on(b,'click',function(){ if(f.value==='') c.win(); else c.miss('Refusé'); });
+ }});
+
+push({id:98,family:'Texte',hints:[
+ 'Le mot n\'est pas la réponse.',
+ 'Ce qu\'on te demande, c\'est une mesure de ce mot.',
+ 'Tape le nombre de lettres du mot affiché.'],
+ build:function(c){
+  var word='inclassable';
+  var col=mkCol(c);
+  col.appendChild(c.el('div','font-family:JetBrains Mono,monospace;font-size:26px',word));
+  var f=c.el('input'); f.className='field'; f.style.width='110px'; f.style.textAlign='center';
+  var b=mkBtn(c,'Valider');
+  col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  function tryIt(){
+    if(!f.value.trim()){ c.miss('Champ vide'); return; }
+    if(f.value.trim()===String(word.length)) c.win(); else c.miss();
+  }
+  c.on(b,'click',tryIt);
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') tryIt(); });
+ }});
+
+push({id:99,family:'Texte',hints:[
+ 'Taper le mot ne suffit pas ici.',
+ 'Le champ vérifie comment le texte y est entré, pas seulement ce qu\'il contient.',
+ 'Sélectionne le mot, copie-le, puis colle-le dans le champ.'],
+ build:function(c){
+  var col=mkCol(c);
+  var w=c.el('div','font-family:JetBrains Mono,monospace;font-size:26px;user-select:text','transfert');
+  var f=c.el('input'); f.className='field';
+  col.appendChild(w); col.appendChild(f); c.scene.appendChild(col);
+  c.scene.style.userSelect='text';
+  c.on(f,'paste',function(e){
+    var t=(e.clipboardData||window.clipboardData).getData('text')||'';
+    if(t.trim().toLowerCase()==='transfert') c.after(function(){ c.win(); },150);
+  });
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') c.miss('Pas saisi à la main'); });
+  return function(){ c.scene.style.userSelect='none'; };
+ }});
+
+push({id:100,family:'Hors-cadre',hints:[
+ 'Le carré ne fait rien au clic.',
+ 'Certaines informations n\'apparaissent qu\'au survol prolongé.',
+ 'Survole le carré sans cliquer, lis l\'infobulle, tape ce qu\'elle dit.'],
+ build:function(c){
+  var col=mkCol(c);
+  var d=c.el('div','width:90px;height:90px;background:var(--ink)');
+  d.setAttribute('title','clef');
+  var f=c.el('input'); f.className='field';
+  var b=mkBtn(c,'Valider');
+  col.appendChild(d); col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  function tryIt(){
+    if(!f.value.trim()){ c.miss('Champ vide'); return; }
+    if(f.value.trim().toLowerCase()==='clef') c.win(); else c.miss();
+  }
+  c.on(b,'click',tryIt);
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') tryIt(); });
+ }});
+
+push({id:101,family:'Hors-cadre',hints:[
+ 'La scène ne montre pas tout ce qu\'elle contient.',
+ 'Le jeu est une page. Une page a un code.',
+ 'Ouvre le code source de la page et cherche le mot marqué indice-101.'],
+ build:function(c){
+  var col=mkCol(c);
+  var host=c.el('div','width:160px;height:60px;border:1px dashed var(--rule)');
+  host.innerHTML='<!-- indice-101: charpente -->';
+  var f=c.el('input'); f.className='field';
+  var b=mkBtn(c,'Valider');
+  col.appendChild(host); col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  function tryIt(){
+    if(!f.value.trim()){ c.miss('Champ vide'); return; }
+    if(f.value.trim().toLowerCase()==='charpente') c.win(); else c.miss();
+  }
+  c.on(b,'click',tryIt);
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') tryIt(); });
+ }});
+
+push({id:102,family:'Mémoire',hints:[
+ 'Cette grille a déjà été résolue.',
+ 'La configuration attendue est celle d\'un niveau du début.',
+ 'Refais le damier.'],
+ build:function(c){
+  var G=mkGrid(c,3,58);
+  c.scene.appendChild(G.node);
+  G.cells.forEach(function(d,i){
+    c.on(d,'click',function(){
+      G.set(i,!G.get(i));
+      var a=true,b=true;
+      for(var r=0;r<3;r++) for(var k=0;k<3;k++){
+        var p=(r+k)%2===0, s=G.get(r*3+k);
+        if(s!==p) a=false;
+        if(s!==!p) b=false;
+      }
+      if(a||b) c.win();
+    });
+  });
+ }});
+
+push({id:103,family:'Mémoire',hints:[
+ 'Aucun mot n\'est affiché cette fois.',
+ 'Un mot caché a déjà été extrait plus tôt dans le protocole.',
+ 'Tape vestige.'],
+ build:function(c){
+  var col=mkCol(c);
+  col.appendChild(c.el('div','font-family:JetBrains Mono,monospace;font-size:26px;color:var(--rule)','\u2022\u2022\u2022\u2022\u2022\u2022\u2022'));
+  var f=c.el('input'); f.className='field';
+  var b=mkBtn(c,'Valider');
+  col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  function tryIt(){
+    if(!f.value.trim()){ c.miss('Champ vide'); return; }
+    if(f.value.trim().toLowerCase()==='vestige') c.win(); else c.miss();
+  }
+  c.on(b,'click',tryIt);
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') tryIt(); });
+ }});
+
+push({id:104,family:'Mémoire',hints:[
+ 'Quatre cases, aucune démonstration.',
+ 'Une séquence a déjà été montrée une fois, bien avant.',
+ 'Rejoue la séquence du niveau 40 : troisième, première, quatrième, deuxième, troisième.'],
+ build:function(c){
+  var row=mkRow(c), nodes=[], seq=[2,0,3,1,2], step=0;
+  for(var i=0;i<4;i++){ var d=c.el('div','width:62px;height:62px;background:var(--ink);cursor:pointer'); nodes.push(d); row.appendChild(d); }
+  c.scene.appendChild(row);
+  nodes.forEach(function(d,i){
+    c.on(d,'click',function(){
+      if(seq[step]===i){
+        step++; d.style.background='var(--signal)';
+        c.after(function(){ d.style.background='var(--ink)'; },160);
+        if(step===seq.length) c.win();
+      } else { step=0; c.miss(); }
+    });
+  });
+ }});
+
+push({id:105,family:'Auto-référence',hints:[
+ 'Le jeu compte tes échecs. Il les affiche.',
+ 'Ici le compteur d\'échecs est la barre de progression.',
+ 'Échoue cinq fois volontairement.'],
+ build:function(c){
+  var n=0, col=mkCol(c);
+  var d=c.el('div','font-family:JetBrains Mono,monospace;font-size:40px','0 / 5');
+  var b=mkBtn(c,'Tenter');
+  col.appendChild(d); col.appendChild(b); c.scene.appendChild(col);
+  c.on(b,'click',function(){
+    n++; d.textContent=n+' / 5';
+    if(n>=5) c.win(); else c.miss('Échec');
+  });
+ }});
+
+push({id:106,family:'Auto-référence',hints:[
+ 'Le champ attend un mot que le jeu affiche déjà.',
+ 'Ce mot n\'est pas dans la scène, il est dans l\'en-tête.',
+ 'Tape le nom de la famille de ce niveau, sans accent ni tiret : autoreference.'],
+ build:function(c){
+  var col=mkCol(c);
+  var f=c.el('input'); f.className='field'; f.style.width='260px';
+  var b=mkBtn(c,'Valider');
+  col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  function norm(s){ return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z]/gi,'').toLowerCase(); }
+  function tryIt(){
+    if(!f.value.trim()){ c.miss('Champ vide'); return; }
+    if(norm(f.value)===norm('Auto-référence')) c.win(); else c.miss();
+  }
+  c.on(b,'click',tryIt);
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') tryIt(); });
+ }});
+
+push({id:107,family:'Coût',hints:[
+ 'Le bouton ne se clique pas, il se garde.',
+ 'Ce que le niveau prend, c\'est du temps continu.',
+ 'Maintiens le bouton enfoncé dix secondes sans relâcher.'],
+ build:function(c){
+  var col=mkCol(c);
+  var track=c.el('div','width:320px;height:10px;border:1px solid var(--ink);background:#fff');
+  var fill=c.el('div','height:100%;width:0%;background:var(--signal)');
+  track.appendChild(fill);
+  var pad=c.el('div','width:130px;height:130px;border:1px solid var(--ink);background:#fff;cursor:pointer');
+  col.appendChild(track); col.appendChild(pad); c.scene.appendChild(col);
+  var held=false,t=0,last=Date.now();
+  c.on(pad,'pointerdown',function(e){ held=true; last=Date.now(); e.preventDefault(); });
+  function release(){ if(held&&t<10000){ held=false; t=0; fill.style.width='0%'; c.miss('Relâché'); } held=false; }
+  c.on(window,'pointerup',release); c.on(window,'pointercancel',release);
+  c.every(function(){
+    var n=Date.now();
+    if(held){ t+=n-last; fill.style.width=Math.min(100,t/100)+'%'; if(t>=10000) c.win(); }
+    last=n;
+  },40);
+ }});
+
+push({id:108,family:'Coût',hints:[
+ 'Le compteur de clics ne sert pas à progresser.',
+ 'Chaque clic supplémentaire fait tout recommencer.',
+ 'Un seul clic suffit : clique une fois, puis attends sans rien toucher.'],
+ build:function(c){
+  var n=0, col=mkCol(c);
+  var d=c.el('div','font-family:JetBrains Mono,monospace;font-size:40px','0');
+  var pad=c.el('div','width:130px;height:90px;border:1px solid var(--ink);background:#fff;cursor:pointer');
+  col.appendChild(d); col.appendChild(pad); c.scene.appendChild(col);
+  var last=0;
+  c.on(pad,'click',function(){
+    n++; d.textContent=n; last=Date.now();
+    if(n>1){ n=0; c.miss('Trop'); c.after(function(){ if(n===0) d.textContent='0'; },600); }
+  });
+  c.every(function(){
+    if(n===1&&Date.now()-last>=5000) c.win();
+  },200);
+ }});
+
+push({id:109,family:'Refus',hints:[
+ 'La consigne demande une saisie. Les consignes de ce jeu ne sont pas fiables.',
+ 'Obéir relance l\'attente.',
+ 'Ne tape rien et laisse passer douze secondes.'],
+ build:function(c){
+  var col=mkCol(c);
+  col.appendChild(c.el('div','font-size:15px','Saisissez votre nom pour continuer.'));
+  var f=c.el('input'); f.className='field';
+  var b=mkBtn(c,'Continuer');
+  col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  var last=Date.now();
+  c.on(f,'input',function(){ last=Date.now(); c.miss(); });
+  c.on(b,'click',function(){ last=Date.now(); c.miss(); });
+  c.every(function(){ if(Date.now()-last>=12000) c.win(); },200);
+ }});
+
+push({id:110,family:'Refus',hints:[
+ 'Une interdiction est écrite. Elle ne vient de personne.',
+ 'Le jeu t\'a déjà appris à ne pas suivre les consignes. Celle-ci est une interdiction.',
+ 'Clique le bouton, précisément parce qu\'il est interdit.'],
+ build:function(c){
+  var col=mkCol(c);
+  col.appendChild(c.el('div','font-size:15px','N\'appuyez sur aucun bouton.'));
+  var b=mkBtn(c,'Bouton');
+  col.appendChild(b); c.scene.appendChild(col);
+  c.on(b,'click',function(){ c.win(); });
+ }});
+
+push({id:111,family:'Refus',hints:[
+ 'Trois réponses sont proposées. Aucune n\'est bonne.',
+ 'Une boîte de dialogue a toujours une quatrième issue.',
+ 'Ferme la boîte par la croix, en haut à droite.'],
+ build:function(c){
+  var box=c.el('div','position:relative;width:340px;border:1px solid var(--ink);background:#fff;padding:20px 18px 16px');
+  var x=c.el('div','position:absolute;right:8px;top:6px;font-size:14px;color:var(--ink-soft);cursor:pointer','\u00d7');
+  box.appendChild(x);
+  box.appendChild(c.el('div','font-size:14px;margin-bottom:16px','Confirmez-vous votre choix ?'));
+  var row=c.el('div','display:flex;gap:8px;justify-content:flex-end');
+  ['Oui','Non','Annuler'].forEach(function(t){
+    var b=mkBtn(c,t); b.style.cssText+=';font-size:13px;padding:6px 12px';
+    row.appendChild(b); c.on(b,'click',function(){ c.miss(); });
+  });
+  box.appendChild(row); c.scene.appendChild(box);
+  c.on(x,'click',function(){ c.win(); });
+ }});
+</script>
+<script>
+push({id:112,family:'Pointeur',hints:[
+ 'Un clic ne produit rien, et pourtant le clic est la bonne voie.',
+ 'Ce qui compte, c\'est l\'enchaînement rapide de deux clics.',
+ 'Fais un double-clic sur la forme.'],
+ build:function(c){
+  var d=c.el('div','width:100px;height:100px;background:var(--ink);cursor:pointer');
+  c.scene.appendChild(d);
+  var t=null;
+  c.on(d,'dblclick',function(){ if(t){ clearTimeout(t); t=null; } c.win(); });
+  c.on(d,'click',function(){ if(t) return; t=setTimeout(function(){ t=null; c.miss(); },320); });
+  return function(){ if(t) clearTimeout(t); };
+ }});
+
+push({id:113,family:'Pointeur',hints:[
+ 'Ni clic gauche ni clic droit.',
+ 'Ta souris a un troisième organe, entre les deux.',
+ 'Fais défiler la molette vers le haut, plusieurs crans.'],
+ build:function(c){
+  var col=mkCol(c);
+  var track=c.el('div','width:14px;height:200px;border:1px solid var(--ink);background:#fff;display:flex;align-items:flex-end');
+  var fill=c.el('div','width:100%;height:0%;background:var(--signal)');
+  track.appendChild(fill);
+  col.appendChild(track); c.scene.appendChild(col);
+  var v=0;
+  c.on(c.scene,'wheel',function(e){
+    e.preventDefault();
+    if(e.deltaY<0) v=Math.min(100,v+9); else v=Math.max(0,v-14);
+    fill.style.height=v+'%';
+    if(v>=100) c.win();
+  },{passive:false});
+  c.on(c.scene,'click',function(){ c.miss(); });
+ }});
+
+push({id:114,family:'Pointeur',hints:[
+ 'Le clic annule tout.',
+ 'Le curseur peut agir sans appuyer.',
+ 'Pose le curseur sur la forme et laisse-le là trois secondes, sans cliquer.'],
+ build:function(c){
+  var d=c.el('div','width:110px;height:110px;border:1px solid var(--ink);background:#fff;position:relative;overflow:hidden');
+  var fill=c.el('div','position:absolute;left:0;bottom:0;width:100%;height:0%;background:var(--signal)');
+  d.appendChild(fill); c.scene.appendChild(d);
+  var t=0,inside=false,last=Date.now();
+  c.on(d,'pointerenter',function(){ inside=true; last=Date.now(); });
+  c.on(d,'pointerleave',function(){ inside=false; t=0; fill.style.height='0%'; });
+  c.on(d,'pointerdown',function(){ t=0; fill.style.height='0%'; c.miss('Pas de clic'); });
+  c.every(function(){
+    var n=Date.now();
+    if(inside){ t+=n-last; fill.style.height=Math.min(100,t/30)+'%'; if(t>=3000) c.win(); }
+    last=n;
+  },40);
+ }});
+
+push({id:115,family:'Pointeur',hints:[
+ 'Le clic est trop bref.',
+ 'Il faut appuyer sans relâcher, mais pas longtemps.',
+ 'Maintiens le bouton enfoncé environ deux secondes, puis relâche.'],
+ build:function(c){
+  var col=mkCol(c);
+  var pad=c.el('div','width:120px;height:120px;border:1px solid var(--ink);background:#fff;cursor:pointer');
+  var s=c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','\u2014');
+  col.appendChild(pad); col.appendChild(s); c.scene.appendChild(col);
+  var t0=0;
+  c.on(pad,'pointerdown',function(e){ t0=Date.now(); pad.style.background='var(--signal)'; e.preventDefault(); });
+  c.on(window,'pointerup',function(){
+    if(!t0) return;
+    var d=Date.now()-t0; t0=0; pad.style.background='#fff'; s.textContent=d+' ms';
+    if(d>=1850&&d<=2150) c.win(); else c.miss();
+  });
+ }});
+
+push({id:116,family:'Permissions',hints:[
+ 'La première boîte se refuse comme la précédente fois.',
+ 'Une seconde demande suit, formulée à l\'envers.',
+ 'Refuse les deux, y compris celle qui présente le refus comme une case à cocher.'],
+ build:function(c){
+  var step=1;
+  function box(title,note,yes,no,onYes,onNo){
+    c.scene.innerHTML='';
+    var b=c.el('div','width:360px;border:1px solid var(--ink);background:#fff;padding:16px');
+    b.appendChild(c.el('div','font-size:14px;margin-bottom:4px',title));
+    b.appendChild(c.el('div','font-size:12px;color:var(--ink-soft);margin-bottom:14px',note));
+    var row=c.el('div','display:flex;gap:10px;justify-content:flex-end');
+    var n=mkBtn(c,no), y=mkBtn(c,yes);
+    row.appendChild(n); row.appendChild(y); b.appendChild(row);
+    c.scene.appendChild(b);
+    c.on(y,'click',onYes); c.on(n,'click',onNo);
+  }
+  function first(){
+    box('Ce niveau souhaite accéder à la caméra','Simulation interne au jeu. Aucun matériel n\'est sollicité.',
+      'Autoriser','Refuser',
+      function(){ c.miss(); },
+      function(){ step=2; c.after(second,350); });
+  }
+  function second(){
+    box('Confirmer le refus d\'accès','Simulation interne au jeu. Aucun matériel n\'est sollicité.',
+      'Ne pas refuser','Maintenir le refus',
+      function(){ c.miss(); c.after(first,400); },
+      function(){ c.win(); });
+  }
+  first();
+ }});
+
+push({id:117,family:'Deux mains',hints:[
+ 'Le clic seul ne passe pas.',
+ 'Le clavier doit accompagner la souris.',
+ 'Maintiens la touche Maj enfoncée et clique la forme.'],
+ build:function(c){
+  var d=c.el('div','width:110px;height:110px;background:var(--ink);cursor:pointer');
+  c.scene.appendChild(d);
+  c.on(d,'click',function(e){ if(e.shiftKey) c.win(); else c.miss(); });
+ }});
+
+push({id:118,family:'Deux mains',hints:[
+ 'Deux voyants, deux touches.',
+ 'Ils doivent être allumés au même instant.',
+ 'Appuie sur A et sur L en même temps, sans relâcher.'],
+ build:function(c){
+  var row=mkRow(c);
+  var A=c.el('div','width:100px;height:100px;border:1px solid var(--ink);background:#fff;display:flex;align-items:center;justify-content:center;font-family:JetBrains Mono,monospace;font-size:22px','a');
+  var B=c.el('div','width:100px;height:100px;border:1px solid var(--ink);background:#fff;display:flex;align-items:center;justify-content:center;font-family:JetBrains Mono,monospace;font-size:22px','l');
+  row.appendChild(A); row.appendChild(B); c.scene.appendChild(row);
+  var down={};
+  c.on(window,'keydown',function(e){
+    var k=(e.key||'').toLowerCase(); down[k]=true;
+    A.style.background=down['a']?'var(--signal)':'#fff';
+    B.style.background=down['l']?'var(--signal)':'#fff';
+    if(down['a']&&down['l']) c.win();
+  });
+  c.on(window,'keyup',function(e){
+    var k=(e.key||'').toLowerCase(); down[k]=false;
+    A.style.background=down['a']?'var(--signal)':'#fff';
+    B.style.background=down['l']?'var(--signal)':'#fff';
+  });
+ }});
+
+push({id:119,family:'Probabiliste',hints:[
+ 'Une seule porte, et elle échoue souvent.',
+ 'Elle n\'est pas cassée, elle est peu généreuse.',
+ 'Insiste jusqu\'à obtenir deux réussites consécutives.'],
+ build:function(c){
+  var streak=0, col=mkCol(c);
+  var s=c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','\u25cb \u25cb');
+  var d=mkBtn(c,'Tenter'); d.style.cssText+=';width:120px;height:120px;font-size:16px';
+  col.appendChild(s); col.appendChild(d); c.scene.appendChild(col);
+  c.on(d,'click',function(){
+    if(Math.random()<0.34){
+      streak++; s.textContent=streak>=2?'\u25cf \u25cf':'\u25cf \u25cb';
+      if(streak>=2) c.win();
+    } else { streak=0; s.textContent='\u25cb \u25cb'; c.miss('Échec'); }
+  });
+ }});
+
+push({id:120,family:'Probabiliste',hints:[
+ 'Quatre portes. Trois fonctionnent parfois.',
+ 'Une n\'a jamais rien donné et ne donnera jamais rien. La toucher annule tout.',
+ 'Obtiens trois réussites sans jamais cliquer la porte morte, la troisième.'],
+ build:function(c){
+  var p=[0.55,0.5,0,0.6], ok=0;
+  var col=mkCol(c);
+  var s=c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','0 / 3');
+  var row=mkRow(c);
+  p.forEach(function(pr,i){
+    var d=mkBtn(c,String(i+1)); d.style.cssText+=';width:66px;height:92px;font-size:17px';
+    row.appendChild(d);
+    c.on(d,'click',function(){
+      if(pr===0){ ok=0; s.textContent='0 / 3'; c.miss('Porte morte'); return; }
+      if(Math.random()<pr){ ok++; s.textContent=ok+' / 3'; if(ok>=3) c.win(); }
+      else c.miss('Échec');
+    });
+  });
+  col.appendChild(s); col.appendChild(row); c.scene.appendChild(col);
+ }});
+
+push({id:121,family:'Destruction',hints:[
+ 'Ici rien ne disparaît. Tout apparaît.',
+ 'Le nombre d\'objets créés est ce qui est jugé.',
+ 'Crée exactement cinq formes, puis cesse.'],
+ build:function(c){
+  var n=0, t=null, made=[];
+  var hint=c.el('div','position:absolute;left:12px;top:10px;font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','0');
+  c.scene.appendChild(hint);
+  c.on(c.scene,'click',function(e){
+    if(e.target!==c.scene) return;
+    var r=c.scene.getBoundingClientRect();
+    var f=c.el('div','position:absolute;left:'+(e.clientX-r.left-13)+'px;top:'+(e.clientY-r.top-13)+'px;width:26px;height:26px;background:var(--ink)');
+    c.scene.appendChild(f); made.push(f);
+    n++; hint.textContent=n;
+    if(t){ clearTimeout(t); t=null; }
+    if(n===5) t=setTimeout(function(){ c.win(); },1200);
+    else if(n>5){
+      c.miss('Trop');
+      made.forEach(function(x){ x.remove(); }); made=[]; n=0; hint.textContent='0';
+    }
+  });
+  return function(){ if(t) clearTimeout(t); };
+ }});
+
+push({id:122,family:'Destruction',hints:[
+ 'Toutes les formes doivent disparaître.',
+ 'L\'ordre dans lequel elles disparaissent est vérifié.',
+ 'Supprime-les de la plus grande à la plus petite.'],
+ build:function(c){
+  var sizes=[74,30,58,44,22], row=mkRow(c);
+  var order=sizes.slice().sort(function(a,b){ return b-a; });
+  var step=0;
+  sizes.forEach(function(s){
+    var d=c.el('div','width:'+s+'px;height:'+s+'px;background:var(--ink);cursor:pointer');
+    row.appendChild(d);
+    c.on(d,'click',function(){
+      if(order[step]===s){ step++; d.style.visibility='hidden'; if(step===sizes.length) c.win(); }
+      else c.miss('Mauvais ordre');
+    });
+  });
+  c.scene.appendChild(row);
+ }});
+
+push({id:123,family:'Destruction',hints:[
+ 'Certaines formes bougent, d\'autres non.',
+ 'Une seule catégorie doit disparaître.',
+ 'Supprime toutes les formes en mouvement et laisse les immobiles.'],
+ build:function(c){
+  var w=c.scene.clientWidth,h=c.scene.clientHeight, moving=0;
+  for(var i=0;i<10;i++){
+    var mv=i%2===0;
+    var d=c.el('div','position:absolute;width:24px;height:24px;background:'+(mv?'var(--ink)':'var(--ink)')+';cursor:pointer;left:'+(30+Math.random()*(w-90))+'px;top:'+(30+Math.random()*(h-90))+'px');
+    c.scene.appendChild(d);
+    if(mv){
+      moving++;
+      (function(d){
+        var a=Math.random()*6.28, x0=parseFloat(d.style.left), y0=parseFloat(d.style.top);
+        c.every(function(){ a+=0.06; d.style.left=(x0+Math.cos(a)*30)+'px'; d.style.top=(y0+Math.sin(a*1.2)*22)+'px'; },40);
+        c.on(d,'click',function(){ d.remove(); moving--; if(moving===0) c.win(); });
+      })(d);
+    } else {
+      (function(d){ c.on(d,'click',function(){ d.remove(); c.miss('Immobile détruite'); }); })(d);
+    }
+  }
+ }});
+
+push({id:124,family:'Rythme',hints:[
+ 'Un tempo régulier ne passe plus.',
+ 'Chaque intervalle doit être plus court que le précédent.',
+ 'Frappe cinq fois en accélérant régulièrement.'],
+ build:function(c){
+  var times=[], col=mkCol(c);
+  var pad=c.el('div','width:150px;height:150px;border:1px solid var(--ink);background:#fff;cursor:pointer');
+  var s=c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','0 / 5');
+  col.appendChild(pad); col.appendChild(s); c.scene.appendChild(col);
+  c.on(pad,'pointerdown',function(){
+    var n=Date.now();
+    if(times.length&&n-times[times.length-1]>2500) times=[];
+    times.push(n);
+    pad.style.background='var(--signal)'; c.after(function(){ pad.style.background='#fff'; },100);
+    s.textContent=times.length+' / 5';
+    if(times.length===5){
+      var g=[];
+      for(var i=1;i<5;i++) g.push(times[i]-times[i-1]);
+      var ok=g[0]>=420&&g.every(function(x,i){ return i===0||(x<g[i-1]*0.92&&x>g[i-1]*0.55); })&&g[3]>90;
+      if(ok) c.win(); else { times=[]; s.textContent='0 / 5'; c.miss('Pas assez régulier'); }
+    }
+  });
+ }});
+
+push({id:125,family:'Rythme',hints:[
+ 'Le carré clignote à intervalle fixe.',
+ 'Il ne faut pas frapper n\'importe quand mais avec lui.',
+ 'Frappe en même temps que quatre flashs consécutifs.'],
+ build:function(c){
+  var col=mkCol(c);
+  var d=c.el('div','width:140px;height:140px;background:var(--ink);cursor:pointer');
+  var s=c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','0 / 4');
+  col.appendChild(d); col.appendChild(s); c.scene.appendChild(col);
+  var beat=900, t0=Date.now(), hits=0, used=-1;
+  c.every(function(){
+    var ph=(Date.now()-t0)%beat;
+    d.style.background=ph<160?'var(--signal)':'var(--ink)';
+  },30);
+  c.on(d,'pointerdown',function(){
+    var el2=Date.now()-t0, idx=Math.round(el2/beat), off=Math.abs(el2-idx*beat);
+    if(off<=170&&idx!==used){ used=idx; hits++; s.textContent=hits+' / 4'; if(hits>=4) c.win(); }
+    else { hits=0; s.textContent='0 / 4'; c.miss('Hors temps'); }
+  });
+ }});
+
+push({id:126,family:'Persistance',hints:[
+ 'Deux passages n\'ont pas suffi.',
+ 'Le compteur monte d\'un à chaque entrée dans le niveau.',
+ 'Quitte et reviens jusqu\'au troisième passage.'],
+ build:function(c){
+  c.scene.appendChild(c.el('div','font-family:JetBrains Mono,monospace;font-size:40px','\u00d7'+c.visits));
+  if(c.visits>=3){ c.after(function(){ c.win(); },900); return; }
+  c.on(c.scene,'click',function(){ c.miss(); });
+ }});
+
+push({id:127,family:'Localisation',hints:[
+ 'Ni la langue ni l\'heure exacte.',
+ 'Ce qui est demandé, c\'est ton décalage avec le temps universel.',
+ 'Saisis ton décalage UTC en heures, avec son signe, par exemple +2.'],
+ build:function(c){
+  var col=mkCol(c);
+  col.appendChild(c.el('div','font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-soft)','UTC ?'));
+  var f=c.el('input'); f.className='field'; f.style.width='120px'; f.style.textAlign='center';
+  var b=mkBtn(c,'Valider');
+  col.appendChild(f); col.appendChild(b); c.scene.appendChild(col);
+  var off=-new Date().getTimezoneOffset();
+  function minutes(v){
+    v=v.toLowerCase().replace(/\s/g,'').replace(/^(utc|gmt)/,'').replace('\u2212','-');
+    if(v==='') return 0;
+    var m=v.match(/^([+-]?)(\d{1,2})(?:(?:[:h](\d{2}))|(?:[.,](\d+)))?$/);
+    if(!m) return null;
+    var t=(+m[2])*60+(m[3]?+m[3]:0)+(m[4]?Math.round(parseFloat('0.'+m[4])*60):0);
+    return m[1]==='-'?-t:t;
+  }
+  function tryIt(){
+    var v=f.value.trim();
+    if(!v){ c.miss('Champ vide'); return; }
+    if(minutes(v)===off) c.win(); else c.miss();
+  }
+  c.on(b,'click',tryIt);
+  c.on(f,'keydown',function(e){ if(e.key==='Enter') tryIt(); });
+ }});
+
+push({id:128,family:'Accessibilité',hints:[
+ 'La tabulation avance. Ce niveau ne veut pas qu\'on avance.',
+ 'Le focus peut aussi remonter.',
+ 'Depuis la première case, fais Maj+Tab pour atteindre la dernière, puis Entrée.'],
+ build:function(c){
+  // La rangée boucle sur elle-même : Maj+Tab depuis la première case mène à la dernière, quel que soit le navigateur.
+  var row=mkRow(c), n=5, cells=[], back=false;
+  for(var i=0;i<n;i++){
+    var d=c.el('div','width:60px;height:60px;border:1px solid var(--rule);background:#fff');
+    d.tabIndex=0; cells.push(d);
+    (function(d,i){
+      c.on(d,'focus',function(){ d.style.borderColor='var(--ink)'; });
+      c.on(d,'blur',function(){ d.style.borderColor='var(--rule)'; });
+      c.on(d,'pointerdown',function(){ back=false; });
+      c.on(d,'keydown',function(e){
+        if(e.key==='Tab'){
+          e.preventDefault();
+          back=e.shiftKey;
+          cells[(i+(e.shiftKey?n-1:1))%n].focus();
+          return;
+        }
+        if(e.key!=='Enter') return;
+        if(i===n-1&&back) c.win();
+        else c.miss(i===n-1?'Pas par la droite':'Pas la bonne case');
+      });
+    })(d,i);
+    row.appendChild(d);
+  }
+  c.scene.appendChild(row);
+ }});
+
+push({id:129,family:'Accessibilité',hints:[
+ 'La case se sélectionne au clavier, mais Entrée est refusée.',
+ 'Un autre bouton du clavier active les éléments focalisés.',
+ 'Focalise la case et appuie sur la barre d\'espace.'],
+ build:function(c){
+  var d=c.el('div','width:120px;height:120px;border:1px solid var(--rule);background:#fff');
+  d.tabIndex=0; c.scene.appendChild(d);
+  c.on(d,'focus',function(){ d.style.borderColor='var(--ink)'; });
+  c.on(d,'blur',function(){ d.style.borderColor='var(--rule)'; });
+  c.on(d,'keydown',function(e){
+    if(e.key==='Enter') c.miss('Refusé');
+    if(e.key===' '||e.code==='Space'){ e.preventDefault(); c.win(); }
+  });
+  c.on(d,'click',function(){ c.miss('Pas la souris'); });
+ }});
+
+push({id:130,family:'Chrome',hints:[
+ 'Le titre au-dessus du cadre change en boucle.',
+ 'Il n\'épelle rien cette fois, il énonce un état.',
+ 'Appuie sur le bouton quand le titre affiche prêt.'],
+ build:function(c){
+  var states=['veille','chargement','prêt','erreur'], i=0;
+  c.setChrome(states[0]);
+  c.every(function(){ i=(i+1)%states.length; c.setChrome(states[i]); },1100);
+  var b=mkBtn(c,'Confirmer'); c.scene.appendChild(b);
+  c.on(b,'click',function(){ if(states[i]==='prêt') c.win(); else c.miss(); });
+ }});
+</script>
+<script>
+(function boot(){
+  var menu=document.getElementById('menu');
+  var grid=document.getElementById('grid');
+  function paint(){
+    grid.innerHTML='';
+    var d=Store.data();
+    LEVELS.forEach(function(l,i){
+      var b=document.createElement('button');
+      b.className='cell'; b.textContent=String(l.id).padStart(3,'0');
+      var unlocked=(i===0)||d.done[LEVELS[i-1].id]||d.done[l.id]||i<=Math.max(d.max||0,d.cur||0);
+      if(d.done[l.id]) b.classList.add('done');
+      else if(d.skipped[l.id]){ b.classList.add('skip'); b.title='passé'; }
+      if(i===Game.at()) b.classList.add('here');
+      if(!unlocked) b.disabled=true;
+      b.addEventListener('click',function(){ menu.style.display='none'; Game.go(i); });
+      grid.appendChild(b);
+    });
+  }
+  document.getElementById('btn-menu').addEventListener('click',function(){
+    paint(); menu.style.display='block';
+  });
+  document.getElementById('btn-close').addEventListener('click',function(){ menu.style.display='none'; });
+  document.getElementById('btn-reset').addEventListener('click',function(){
+    Store.wipe(); paint(); menu.style.display='none'; Game.go(0);
+  });
+  Store.load(function(d){
+    // Reprendre là où le joueur s'était arrêté : un niveau passé ne doit pas revenir au rechargement.
+    var start=Math.max(0,Math.min(+d.cur||0,LEVELS.length));
+    if(start<LEVELS.length&&d.done[LEVELS[start].id]) start++;
+    Game.go(start);
+  });
+})();
+</script>
