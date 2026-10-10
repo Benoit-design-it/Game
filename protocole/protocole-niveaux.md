@@ -4,12 +4,14 @@
 
 Chaque niveau dispose de 3 indices progressifs (1 seul pour le 17). Déblocage d'un indice : 25 s ou 2 échecs, puis 75 s ou 5 échecs, puis 150 s ou 9 échecs. Bouton Passer : 180 s ou 10 échecs.
 
+Progression : le jeu reprend au dernier niveau joué (pas au premier non résolu). Un niveau passé est mémorisé et apparaît en pointillé dans la liste des niveaux. Tout niveau déjà atteint reste accessible depuis la liste. L'écran de fin indique combien de règles ont été trouvées sur 130.
+
 
 ## Table générale
 
 | N° | Famille | But caché | Condition de victoire (valeurs du code) |
 |---|---|---|---|
-| 1 | Inaction | Ne pas toucher la balle | Aucun pointerdown/pointermove sur la balle pendant 10 000 ms |
+| 1 | Inaction | Ne pas toucher la balle | Aucune manipulation de la balle (pointerdown, glisser) pendant 10 000 ms |
 | 2 | Inversion | Aller au bord opposé à la flèche | Curseur à moins de 18 px du bord gauche |
 | 3 | Timing | Arrêter la jauge au milieu | Valeur entre 47 et 53 % (cycle 2 600 ms) |
 | 4 | Séquence | Cliquer les formes par taille croissante | Ordre 22, 38, 54, 74 px ; toute erreur remet à zéro |
@@ -39,14 +41,14 @@ Chaque niveau dispose de 3 indices progressifs (1 seul pour le 17). Déblocage d
 | 28 | Localisation | Saisir la langue du navigateur | navigator.language, 2 premières lettres |
 | 29 | Accessibilité | Tabuler jusqu'à la 4ᵉ case | Focus index 3 + keydown Enter |
 | 30 | Chrome | Lire le titre qui s'épelle | Chaîne signal |
-| 31 | Timing | Arrêter la jauge pleine | Valeur ≥ 97 % |
+| 31 | Timing | Arrêter la jauge pleine | Valeur ≥ 97 % ; la jauge marque une pause de 200 ms à chaque extrémité |
 | 32 | Timing | Arrêter la jauge devenue invisible | Valeur 42–58 %, jauge masquée après 2 200 ms |
-| 33 | Timing | Arrêter quand les deux jauges se croisent | |A − B| ≤ 4 (périodes 2 200 et 3 100 ms) |
-| 34 | Timing | Cliquer quand le point coupe la ligne | |x − centre| < 14 px |
-| 35 | Timing | Réussir avant que la marge ne fonde | |v − 50| ≤ tol/2 ; tol part de 22 % et perd 4 points par échec, plancher 5 |
+| 33 | Timing | Arrêter quand les deux jauges se croisent | \|A − B\| ≤ 4 (périodes 2 200 et 3 100 ms, B part de 60 %) |
+| 34 | Timing | Cliquer quand le point coupe la ligne | \|x − centre\| < 14 px |
+| 35 | Timing | Réussir avant que la marge ne fonde | \|v − 50\| ≤ tol/2 ; tol part de 22 % et perd 4 points par échec, plancher 5 |
 | 36 | Timing | Cliquer pendant la phase claire | Fenêtre de 380 ms après une attente aléatoire de 1 800–3 000 ms |
 | 37 | Timing | Espacer deux clics d'une seconde | Écart 1 000 ms ± 90 |
-| 38 | Timing | Anticiper le point sous le cache | |x − repère| < 26 px, trajet 2 200 ms |
+| 38 | Timing | Anticiper le point sous le cache | \|x − repère\| < 26 px, trajet 2 200 ms |
 | 39 | Séquence | Rejouer la séquence à l'envers | Ordre 3, 2, 1, 0 après la démonstration |
 | 40 | Séquence | Reproduire la séquence montrée | Ordre 2, 0, 3, 1, 2 ; bouton Revoir disponible |
 | 41 | Séquence | Ordre alphabétique | a, c, h, m, r |
@@ -65,20 +67,20 @@ Chaque niveau dispose de 3 indices progressifs (1 seul pour le 17). Déblocage d
 | 54 | Motif | Inverser le modèle | Chaque case opposée au modèle affiché au-dessus |
 | 55 | Précision | Suivre le couloir en L | Entrée par A, sortie par B, curseur toujours dans un des deux segments |
 | 56 | Précision | Franchir le couloir conique | Rester dans le polygone de 80 px à 12 px de large, jusqu'à x > 555 |
-| 57 | Précision | Suivre le cercle mobile | Curseur à ≤ 37 px du centre pendant 4 000 ms cumulés sans sortie |
-| 58 | Précision | Tracer 200 px | Longueur du trait 200 px ± 8, direction libre |
-| 59 | Précision | Traverser lentement | Vitesse du curseur toujours < 260 px/s entre A et B |
+| 57 | Précision | Suivre le cercle mobile | Curseur à ≤ 37 px du centre pendant 4 000 ms continus ; toute sortie (y compris quand le cercle s'éloigne d'un curseur immobile) remet à zéro |
+| 58 | Précision | Tracer 200 px | Longueur du trait 200 px ± 8, direction libre ; un trait de moins de 6 px est ignoré |
+| 59 | Précision | Traverser lentement | Vitesse du curseur, mesurée sur une fenêtre glissante d'environ 100 ms, toujours < 260 px/s entre A et B |
 | 60 | Précision | Traverser vite | A vers B en ≤ 600 ms |
-| 61 | Précision | Faire le tour du disque | Angle cumulé ≥ 360° − 8,6°, distance au centre toujours > 48 px |
+| 61 | Précision | Faire le tour du disque | Angle cumulé ≥ 360° − 8,6°, distance au centre toujours > 48 px ; quitter la scène remet à zéro |
 | 62 | Précision | Déposer au pixel près | Centre de la balle à ≤ 6 px du point à la fin du glisser |
 | 63 | Inversion | Viser à l'opposé | Balle miroir du curseur amenée dans le carré rouge |
 | 64 | Inversion | Utiliser le bouton moins pour monter | v = 12 maintenu 700 ms ; boutons inversés |
 | 65 | Inversion | Laisser venir la cible | Balle à ±20 px du centre ; elle fuit tant que le curseur est à < 200 px |
 | 66 | Inversion | Descendre sous zéro | Compteur passe de 0 à 20 par bouclage, cible 20 |
 | 67 | Inversion | Taper à l'envers | Valeur saisie retournée = miroir |
-| 68 | Inversion | Équilibrer les jauges liées | |A − B| ≤ 2 maintenu 900 ms ; toute action déplace 10 points de l'une à l'autre |
+| 68 | Inversion | Équilibrer les jauges liées | \|A − B\| ≤ 2 maintenu 900 ms ; toute action déplace 10 points de l'une à l'autre |
 | 69 | Inversion | Sortir par Échap | keydown Escape ; Valider et Entrée échouent |
-| 70 | Inversion | Se déplacer à l'inverse de l'image | Scène en scaleX(−1) ; balle dans la cible |
+| 70 | Inversion | Se déplacer à l'inverse de l'image | Scène en scaleX(−1) : la cible apparaît à droite, le curseur doit aller à gauche |
 | 71 | Inaction | Cesser de cliquer | Aucun clic pendant 12 000 ms |
 | 72 | Inaction | Immobiliser le curseur | Aucun pointermove pendant 8 000 ms |
 | 73 | Inaction | Laisser passer les formes | 8 formes sorties du cadre sans qu'aucune ait été cliquée |
@@ -96,28 +98,28 @@ Chaque niveau dispose de 3 indices progressifs (1 seul pour le 17). Déblocage d
 | 85 | Coopération | Aligner les trois balles | Écart vertical max ≤ 9 px maintenu 700 ms |
 | 86 | Coopération | Superposer les carrés | Centres à ≤ 7 px au relâchement |
 | 87 | Coopération | Tendre le lien | Distance entre les deux balles ≥ 340 px |
-| 88 | Rupture | Vider la barre menteuse | État réel = 100, la barre affiche 100 − réel ; Progresser décrémente le réel |
+| 88 | Rupture | Vider la barre menteuse | La barre affiche 100 − réel ; le réel part de 40 (barre à 60 %) ; Progresser retire 20 au réel (la barre se remplit), Reculer en ajoute 20 ; victoire quand le réel atteint 100 (barre vide) |
 | 89 | Rupture | Utiliser le bouton mal étiqueté | v = 5 via le bouton libellé 0 ; le bouton +1 remet à zéro |
 | 90 | Rupture | Démentir la fausse victoire | Clic sur le faux message « Niveau résolu » |
 | 91 | Environnement | Changer d'onglet | visibilitychange caché puis visible |
 | 92 | Environnement | Perdre le focus fenêtre | blur puis focus avec un écart ≥ 3 000 ms |
 | 93 | Temps réel | Cliquer sur une dizaine ronde | secondes % 10 = 0 et ms < 600, ou secondes % 10 = 9 et ms > 600 |
-| 94 | Temps réel | Saisir l'heure locale | hh:mm ou h:mm de l'horloge système |
+| 94 | Temps réel | Saisir l'heure locale | hh:mm, h:mm ou 14h05 ; la minute courante et la précédente sont acceptées |
 | 95 | Navigation | Revenir à l'adresse précédente | Chaîne jeu://niveau/94 ; le 96 est explicitement verrouillé |
 | 96 | Navigation | Compléter l'adresse | Chaîne jeu://niveau/96/sortie ; segment inscrit en gris clair en bas à droite |
 | 97 | Texte | Valider un champ vide | Valeur strictement vide au clic sur Valider |
 | 98 | Texte | Compter les lettres | 11, longueur du mot inclassable |
 | 99 | Texte | Coller au lieu de taper | Événement paste contenant transfert ; Entrée refusée |
 | 100 | Hors-cadre | Lire l'infobulle | Attribut title = clef, révélé au survol |
-| 101 | Hors-cadre | Lire le code source | Commentaire HTML indice-101 = charpente |
+| 101 | Hors-cadre | Lire le code source | Commentaire HTML indice-101 = charpente, injecté dans la scène (visible à l'inspecteur et dans le script de la page) |
 | 102 | Mémoire | Refaire le damier du niveau 6 | Une des deux parités complètes |
 | 103 | Mémoire | Retaper le mot du niveau 15 | Chaîne vestige, aucun affichage |
 | 104 | Mémoire | Rejouer la séquence du niveau 40 | Ordre 2, 0, 3, 1, 2 sans démonstration |
-| 105 | Auto-référence | Échouer volontairement | 5 clics sur Tenter, chacun compté comme échec |
+| 105 | Auto-référence | Échouer volontairement | 5 clics sur Tenter : les 4 premiers comptent comme échecs, le 5ᵉ résout |
 | 106 | Auto-référence | Taper le nom de la famille | autoreference après normalisation (accents et tirets ignorés) |
 | 107 | Coût | Payer en temps continu | pointerdown maintenu 10 000 ms sans relâcher |
-| 108 | Coût | Ne cliquer qu'une fois | n = 1 puis 5 000 ms sans second clic |
-| 109 | Refus | Ne pas saisir son nom | Aucune saisie ni clic pendant 12 000 ms malgré la consigne |
+| 108 | Coût | Ne cliquer qu'une fois | n = 1 puis 5 000 ms sans second clic ; un second clic est un échec et remet à zéro |
+| 109 | Refus | Ne pas saisir son nom | Aucune saisie ni clic sur Continuer pendant 12 000 ms malgré la consigne |
 | 110 | Refus | Transgresser l'interdiction | Clic sur le bouton que la consigne interdit |
 | 111 | Refus | Fermer la boîte | Clic sur la croix ; Oui, Non et Annuler échouent |
 | 112 | Pointeur | Double-cliquer | Événement dblclick ; un clic isolé = échec après 320 ms |
@@ -129,14 +131,14 @@ Chaque niveau dispose de 3 indices progressifs (1 seul pour le 17). Déblocage d
 | 118 | Deux mains | Presser deux touches ensemble | a et l simultanément enfoncées |
 | 119 | Probabiliste | Persévérer sur une porte peu généreuse | 2 réussites consécutives, p = 34 % |
 | 120 | Probabiliste | Éviter la porte morte | 3 réussites ; portes à 55, 50, 0 et 60 % ; toucher la 3ᵉ remet à zéro |
-| 121 | Destruction | Créer exactement cinq formes | n = 5 puis 1 200 ms sans création ; la 6ᵉ = échec |
+| 121 | Destruction | Créer exactement cinq formes | n = 5 puis 1 200 ms sans création ; la 6ᵉ est un échec et efface tout |
 | 122 | Destruction | Détruire du plus grand au plus petit | Ordre 74, 58, 44, 30, 22 px |
 | 123 | Destruction | Ne détruire que ce qui bouge | Les 5 formes animées supprimées, les 5 immobiles intactes |
 | 124 | Rythme | Accélérer régulièrement | 5 frappes, 1ᵉʳ intervalle ≥ 420 ms, chaque suivant entre 55 et 92 % du précédent, dernier > 90 ms |
 | 125 | Rythme | Frapper en phase avec le flash | 4 frappes à ≤ 170 ms du battement, période 900 ms, une seule par battement |
 | 126 | Persistance | Revenir trois fois | visites ≥ 3 (persistant) |
-| 127 | Localisation | Saisir son décalage UTC | Offset en heures, avec ou sans signe, préfixe UTC accepté |
-| 128 | Accessibilité | Remonter le focus | Maj+Tab jusqu'à la dernière case puis Entrée |
+| 127 | Localisation | Saisir son décalage UTC | Décalage avec ou sans signe, préfixe UTC ou GMT accepté ; demi-heures en +5:30, 5h30 ou +5.5 |
+| 128 | Accessibilité | Remonter le focus | Le focus boucle dans la rangée ; depuis la première case, Maj+Tab mène à la dernière, puis Entrée. Y arriver par Tab échoue |
 | 129 | Accessibilité | Activer à la barre d'espace | keydown Space sur la case focalisée ; Entrée refusée |
 | 130 | Chrome | Confirmer au bon état du titre | Clic sur Confirmer quand le faux onglet affiche « prêt » (cycle 1 100 ms) |
 
@@ -180,6 +182,9 @@ Chaque niveau dispose de 3 indices progressifs (1 seul pour le 17). Déblocage d
 - Le niveau 17 se gagne en demandant un indice : il n'a volontairement qu'un seul indice.
 - Le niveau 22 et le niveau 116 simulent des demandes d'autorisation. Aucune API navigateur (micro, caméra, géolocalisation) n'est appelée, et la boîte est stylée comme le jeu pour ne pas imiter le navigateur.
 - Le niveau 35 durcit sa tolérance à chaque échec sans jamais la rendre nulle : plancher à 5 %.
+- Les rappels d'un niveau (animations, minuteurs) sont neutralisés dès qu'on le quitte : ils ne peuvent plus résoudre ni faire échouer le niveau suivant.
+- Les victoires différées (5, 66, 75, 89) revérifient la condition au moment de valider : dépasser la cible pendant le délai annule la victoire.
+- Aucun niveau ne peut se bloquer définitivement : les 108 et 121 se remettent à zéro après l'échec.
 
 ## Candidats à la coupe au playtest
 
@@ -190,5 +195,5 @@ Chaque niveau dispose de 3 indices progressifs (1 seul pour le 17). Déblocage d
 | 93 | Très proche du 12, même mécanique horlogère |
 | 102 | Rappel du 6 trop rapproché pour mordre |
 | 103 | Rappel du 15, même remarque |
-| 128 | Comportement de Maj+Tab variable selon navigateur |
+| 128 | Le focus ne sort plus de la rangée au clavier (nécessaire pour un comportement identique sur tous les navigateurs) : vérifier que ce piège ne gêne pas |
 | 109 | Proche du 74, attente sous consigne |
